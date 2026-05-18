@@ -55,3 +55,10 @@ wrangler.toml      # if it contains real cloudflare credentials
 .DS_Store
 .vscode/           # NOTE: Keep this IF you want to share your mcp configs with peers,
                    # but ignore it if it contains personal paths.
+
+apps/**/.wrangler/
+# Monorepo build outputs
+apps/**/dist/
+packages/**/dist/
+apps/**/build/
+packages/**/build/
