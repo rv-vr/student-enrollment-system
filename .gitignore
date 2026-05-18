@@ -36,3 +36,22 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Dependency directories
+node_modules/
+.pnpm-store/
+
+# Next.js / SvelteKit / Vite build outputs
+.svelte-kit/
+dist/
+.turbo/
+
+# Local Environment files
+.env
+.env*.local
+wrangler.toml      # if it contains real cloudflare credentials
+
+# IDE files
+.DS_Store
+.vscode/           # NOTE: Keep this IF you want to share your mcp configs with peers,
+                   # but ignore it if it contains personal paths.

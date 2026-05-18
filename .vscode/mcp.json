@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "svelte": {
+      "url": "https://mcp.svelte.dev/mcp"
+    },
+    "hono-docs": {
+      "url": "https://hono-docs-mcp.yusukebe.workers.dev/mcp"
+    }
+  }
+}
