@@ -13,7 +13,10 @@ export const studentsRoutes = new Hono<{ Variables: AppVariables }>()
 
 studentsRoutes.use('*', requireAuth)
 
-studentsRoutes.get('/:id/courses', zValidator('param', studentIdParamSchema, studentValidationHook), (c) => {
+studentsRoutes.get(
+  '/:id/courses',
+  zValidator('param', studentIdParamSchema, studentValidationHook),
+  (c) => {
     const user = c.get('user')
     const { id } = c.req.valid('param')
     const student = getStudent(id)
