@@ -40,6 +40,11 @@ export type Enrollment = {
   updatedAt: string
 }
 
+// Grade scale: lower numbers are better. 1.00 is the highest mark, 5.00 is the failing edge.
+export const gradeScaleMin = 1
+export const gradeScaleMax = 5
+export const passingGradeThreshold = 3.0
+
 function makeEntityId(code: 'S' | 'I' | 'A' | 'E', digits: string) {
   return `2026-${digits}-${code}`
 }
@@ -117,8 +122,6 @@ export const enrollments: Enrollment[] = [
   },
 ]
 
-const passingGradeThreshold = 3.0
-
 export function getStudent(studentId: string) {
   return students.find((student) => student.id === studentId)
 }
@@ -148,7 +151,7 @@ export function getEnrollmentsForCourse(courseCode: string) {
 }
 
 export function isPassingGrade(grade: GradeValue) {
-  return grade !== null && grade >= 1 && grade <= passingGradeThreshold
+  return grade !== null && grade <= passingGradeThreshold
 }
 
 export function hasPassedCourse(studentId: string, courseCode: string) {

@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { gradeScaleMax, gradeScaleMin } from './store'
+
 const tokenIdSchema = (suffix: 'S' | 'I' | 'A' | 'E') =>
   z.string().regex(new RegExp(`^2026-\\d{4}-${suffix}$`))
 
@@ -23,5 +25,5 @@ export const dropSchema = z.object({
 
 export const gradeSchema = z.object({
   enrollmentId: tokenIdSchema('E'),
-  grade: z.union([z.number().min(1).max(5), z.null()]),
+  grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
 })
