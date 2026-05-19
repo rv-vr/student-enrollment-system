@@ -2,11 +2,11 @@ import { z } from 'zod'
 
 import { gradeScaleMax, gradeScaleMin } from './store'
 
-const tokenIdSchema = (suffix: 'S' | 'I' | 'A' | 'E') =>
-  z.string().regex(new RegExp(`^2026-\\d{4}-${suffix}$`))
+const actorIdSchema = (suffixes: readonly ('A' | 'I' | 'R' | 'F')[]) =>
+  z.string().regex(new RegExp(`^2026-\\d{4}-(?:${suffixes.join('|')})$`))
 
 export const studentIdParamSchema = z.object({
-  id: tokenIdSchema('S'),
+  id: actorIdSchema(['A', 'I']),
 })
 
 export const courseCodeParamSchema = z.object({
@@ -14,16 +14,16 @@ export const courseCodeParamSchema = z.object({
 })
 
 export const enrollSchema = z.object({
-  studentId: tokenIdSchema('S'),
+  studentId: actorIdSchema(['A', 'I']),
   courseCode: z.string().trim().min(1).transform((value) => value.toUpperCase()),
 })
 
 export const dropSchema = z.object({
-  studentId: tokenIdSchema('S'),
+  studentId: actorIdSchema(['A', 'I']),
   courseCode: z.string().trim().min(1).transform((value) => value.toUpperCase()),
 })
 
 export const gradeSchema = z.object({
-  enrollmentId: tokenIdSchema('E'),
+  enrollmentId: z.string().uuid(),
   grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
 })

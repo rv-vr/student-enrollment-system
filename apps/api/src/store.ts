@@ -45,14 +45,16 @@ export const gradeScaleMin = 1
 export const gradeScaleMax = 5
 export const passingGradeThreshold = 3.0
 
-function makeEntityId(code: 'S' | 'I' | 'A' | 'E', digits: string) {
-  return `2026-${digits}-${code}`
+type ActorSuffix = 'A' | 'I' | 'R' | 'F'
+
+function makeEntityId(suffix: ActorSuffix, digits: string) {
+  return `2026-${digits}-${suffix}`
 }
 
 export const students: Student[] = [
-  { id: makeEntityId('S', '1842'), name: 'Ava M. Patel', section: 'Section A' },
-  { id: makeEntityId('S', '5927'), name: 'Noah T. Kim', section: 'Section B' },
-  { id: makeEntityId('S', '7403'), name: 'Mia R. Garcia', section: 'Section A' },
+  { id: makeEntityId('A', '1842'), name: 'Ava M. Patel', section: 'Section A' },
+  { id: makeEntityId('I', '5927'), name: 'Noah T. Kim', section: 'Section B' },
+  { id: makeEntityId('A', '7403'), name: 'Mia R. Garcia', section: 'Section A' },
 ]
 
 export const instructors: Instructor[] = [
@@ -68,7 +70,7 @@ export const instructors: Instructor[] = [
   },
 ]
 
-export const admins: Admin[] = [{ id: makeEntityId('A', '1338'), name: 'Grace L. Chen' }]
+export const admins: Admin[] = [{ id: makeEntityId('R', '1338'), name: 'Grace L. Chen' }]
 
 export const courses: Course[] = [
   {
@@ -99,7 +101,7 @@ export const courses: Course[] = [
 
 export const enrollments: Enrollment[] = [
   {
-    id: makeEntityId('E', '4471'),
+    id: '61b1b5d5-5b4f-4b68-8f0d-6bf3f3cc3d81',
     studentId: students[0].id,
     courseCode: 'CS101',
     approvalStatus: 'APPROVED',
@@ -110,7 +112,7 @@ export const enrollments: Enrollment[] = [
     updatedAt: '2026-05-19T08:00:00.000Z',
   },
   {
-    id: makeEntityId('E', '8820'),
+    id: 'fbb69bc6-5f2c-4c8d-9b5c-2c3d3f7b4f91',
     studentId: students[1].id,
     courseCode: 'CS102',
     approvalStatus: 'PENDING',
@@ -205,7 +207,7 @@ export function createEnrollment(studentId: string, courseCode: string) {
   }
 
   const enrollment: Enrollment = {
-    id: makeEntityId('E', String(Math.floor(1000 + Math.random() * 9000))),
+    id: crypto.randomUUID(),
     studentId,
     courseCode,
     approvalStatus: 'PENDING',

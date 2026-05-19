@@ -16,7 +16,7 @@ studentsRoutes.get(
     if (!result.success) {
       return c.json(
         {
-          message: 'Invalid student ID format. Expected 2026-XXXX-S.',
+          message: 'Invalid student ID format. Expected 2026-XXXX-A or 2026-XXXX-I.',
         },
         400,
       )
