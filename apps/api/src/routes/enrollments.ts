@@ -1,6 +1,11 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { dropSchema, enrollSchema, gradeSchema } from '../validators'
+import {
+  dropSchema,
+  enrollSchema,
+  enrollmentValidationHook,
+  gradeSchema,
+} from '../validators'
 import {
   buildEnrollmentView,
   createEnrollment,
@@ -18,7 +23,7 @@ import {
 
 export const enrollmentsRoutes = new Hono()
 
-enrollmentsRoutes.post('/enroll', zValidator('json', enrollSchema), (c) => {
+enrollmentsRoutes.post('/enroll', zValidator('json', enrollSchema, enrollmentValidationHook), (c) => {
   const { studentId, courseCode } = c.req.valid('json')
   const student = getStudent(studentId)
 
@@ -74,7 +79,7 @@ enrollmentsRoutes.post('/enroll', zValidator('json', enrollSchema), (c) => {
   )
 })
 
-enrollmentsRoutes.post('/drop', zValidator('json', dropSchema), (c) => {
+enrollmentsRoutes.post('/drop', zValidator('json', dropSchema, enrollmentValidationHook), (c) => {
   const { studentId, courseCode } = c.req.valid('json')
   const course = getCourse(courseCode)
 
@@ -101,7 +106,7 @@ enrollmentsRoutes.post('/drop', zValidator('json', dropSchema), (c) => {
   })
 })
 
-enrollmentsRoutes.patch('/grade', zValidator('json', gradeSchema), (c) => {
+enrollmentsRoutes.patch('/grade', zValidator('json', gradeSchema, enrollmentValidationHook), (c) => {
   const { enrollmentId, grade } = c.req.valid('json')
   const enrollment = getEnrollment(enrollmentId)
 
