@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { courseCodeParamSchema } from '../validators'
+import { courseCodeParamSchema, courseValidationHook } from '../validators'
 import {
   courses,
   getActiveEnrollmentCount,
@@ -20,7 +20,10 @@ coursesRoutes.get('/', (c) => {
   )
 })
 
-coursesRoutes.get('/:code/availability', zValidator('param', courseCodeParamSchema), (c) => {
+coursesRoutes.get(
+  '/:code/availability',
+  zValidator('param', courseCodeParamSchema, courseValidationHook),
+  (c) => {
   const { code } = c.req.valid('param')
   const course = getCourse(code)
 
@@ -36,4 +39,5 @@ coursesRoutes.get('/:code/availability', zValidator('param', courseCodeParamSche
     remainingSeats,
     hasCapacity: remainingSeats > 0,
   })
-})
+  },
+)
