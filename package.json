@@ -5,6 +5,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
   },
@@ -21,8 +22,5 @@
     "apps/*",
     "packages/*"
   ],
-  "dependencies": {
-    "@hono/zod-validator": "^0.8.0",
-    "zod": "^4.4.3"
-  }
+  "dependencies": {}
 }

@@ -1,5 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
+import { requireAuth, type AppVariables } from '../auth'
 import {
   dropSchema,
   enrollSchema,
@@ -21,10 +22,22 @@ import {
   updateEnrollmentGrade,
 } from '../store'
 
-export const enrollmentsRoutes = new Hono()
+export const enrollmentsRoutes = new Hono<{ Variables: AppVariables }>()
+
+enrollmentsRoutes.use('*', requireAuth)
 
 enrollmentsRoutes.post('/enroll', zValidator('json', enrollSchema, enrollmentValidationHook), (c) => {
+  const user = c.get('user')
   const { studentId, courseCode } = c.req.valid('json')
+
+  if (user.role !== 'student') {
+    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
+  }
+
+  if (user.id !== studentId) {
+    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
+  }
+
   const student = getStudent(studentId)
 
   if (!student) {
@@ -80,7 +93,17 @@ enrollmentsRoutes.post('/enroll', zValidator('json', enrollSchema, enrollmentVal
 })
 
 enrollmentsRoutes.post('/drop', zValidator('json', dropSchema, enrollmentValidationHook), (c) => {
+  const user = c.get('user')
   const { studentId, courseCode } = c.req.valid('json')
+
+  if (user.role !== 'student') {
+    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
+  }
+
+  if (user.id !== studentId) {
+    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
+  }
+
   const course = getCourse(courseCode)
 
   if (!course) {
@@ -107,7 +130,13 @@ enrollmentsRoutes.post('/drop', zValidator('json', dropSchema, enrollmentValidat
 })
 
 enrollmentsRoutes.patch('/grade', zValidator('json', gradeSchema, enrollmentValidationHook), (c) => {
+  const user = c.get('user')
   const { enrollmentId, grade } = c.req.valid('json')
+
+  if (user.role === 'student') {
+    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
+  }
+
   const enrollment = getEnrollment(enrollmentId)
 
   if (!enrollment) {

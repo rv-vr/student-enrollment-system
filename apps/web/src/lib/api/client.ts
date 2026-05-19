@@ -1,69 +1,105 @@
-import type { AppType } from 'api'
-import { hc } from 'hono/client'
+import type { AppType } from "api";
+import { hc } from "hono/client";
+import { getAuthHeaders } from "$lib/stores/auth";
 import type {
+  ApiErrorResponse,
   CourseAvailability,
   CourseCatalogEntry,
+  LoginResponse,
   MutationResponse,
   StudentCoursesResponse,
-} from './types'
+} from "./types";
 
-const client = hc<AppType>('http://localhost:8787')
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly payload: ApiErrorResponse | Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+const client = hc<AppType>("http://localhost:8787", {
+  headers: () => getAuthHeaders(),
+});
 
 async function readJson<T>(response: Response): Promise<T> {
-  const data = await response.json().catch(() => null)
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    const payload =
+      data && typeof data === "object"
+        ? (data as ApiErrorResponse | Record<string, unknown>)
+        : {};
     const message =
-      data && typeof data === 'object' && 'message' in data
-        ? String((data as { message?: unknown }).message)
-        : `Request failed with status ${response.status}`
+      typeof (payload as ApiErrorResponse).error === "string"
+        ? (payload as ApiErrorResponse).error
+        : typeof (payload as { message?: unknown }).message === "string"
+          ? String((payload as { message?: unknown }).message)
+          : `Request failed with status ${response.status}`;
 
-    throw new Error(message)
+    throw new ApiError(message, response.status, payload);
   }
 
-  return data as T
+  return data as T;
+}
+
+export async function loginWithCredentials(username: string, password: string) {
+  return readJson<LoginResponse>(
+    await client.auth.login.$post({
+      json: {
+        username,
+        password,
+      },
+    }),
+  );
 }
 
 export async function getCourses() {
-  return readJson<CourseCatalogEntry[]>(await client.courses.$get())
+  return readJson<CourseCatalogEntry[]>(await client.courses.$get());
 }
 
 export async function getCourseAvailability(courseCode: string) {
   return readJson<CourseAvailability>(
-    await client.courses[':code'].availability.$get({
+    await client.courses[":code"].availability.$get({
       param: { code: courseCode },
     }),
-  )
+  );
 }
 
-export async function getStudentCourses(studentId: number) {
+export async function getStudentCourses(studentId: string) {
   return readJson<StudentCoursesResponse>(
-    await client.students[':id'].courses.$get({
+    await client.students[":id"].courses.$get({
       param: { id: String(studentId) },
     }),
-  )
+  );
 }
 
-export async function enrollStudent(studentId: number, courseCode: string) {
+export async function enrollStudent(studentId: string, courseCode: string) {
   return readJson<MutationResponse>(
     await client.enroll.$post({
       json: { studentId, courseCode: courseCode.toUpperCase() },
     }),
-  )
+  );
 }
 
-export async function dropStudentCourse(studentId: number, courseCode: string) {
+export async function dropStudentCourse(studentId: string, courseCode: string) {
   return readJson<MutationResponse>(
     await client.drop.$post({
       json: { studentId, courseCode: courseCode.toUpperCase() },
     }),
-  )
+  );
 }
 
-export async function updateEnrollmentGrade(enrollmentId: string, grade: number | string) {
+export async function updateEnrollmentGrade(
+  enrollmentId: string,
+  grade: number | string,
+) {
   return readJson<MutationResponse>(
     await client.grade.$patch({
       json: { enrollmentId, grade },
     }),
-  )
+  );
 }
