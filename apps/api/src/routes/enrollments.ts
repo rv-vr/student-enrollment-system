@@ -55,6 +55,9 @@ enrollmentsRoutes.post('/enroll', zValidator('json', enrollSchema), (c) => {
   }
 
   const enrollment = createEnrollment(student.id, course.code)
+  if (!enrollment) {
+    return c.json({ message: 'Unable to create enrollment' }, 500)
+  }
   const remainingSeats = getRemainingSeats(course.code)
 
   return c.json(
@@ -113,9 +116,12 @@ enrollmentsRoutes.patch('/grade', zValidator('json', gradeSchema), (c) => {
   }
 
   return c.json({
-    message: isPassingGrade(updatedEnrollment.grade)
-      ? 'Passing grade recorded'
-      : 'Grade recorded',
+    message:
+      updatedEnrollment.grade === null
+        ? 'Grade cleared'
+        : isPassingGrade(updatedEnrollment.grade)
+          ? 'Passing grade recorded'
+          : 'Grade recorded',
     enrollment: buildEnrollmentView(updatedEnrollment),
   })
 })

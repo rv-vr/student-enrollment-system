@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
+const tokenIdSchema = (suffix: 'S' | 'I' | 'A' | 'E') =>
+  z.string().regex(new RegExp(`^2026-\\d{4}-${suffix}$`))
+
 export const studentIdParamSchema = z.object({
-  id: z.coerce.number().int().positive(),
+  id: tokenIdSchema('S'),
 })
 
 export const courseCodeParamSchema = z.object({
@@ -9,16 +12,16 @@ export const courseCodeParamSchema = z.object({
 })
 
 export const enrollSchema = z.object({
-  studentId: z.coerce.number().int().positive(),
+  studentId: tokenIdSchema('S'),
   courseCode: z.string().trim().min(1).transform((value) => value.toUpperCase()),
 })
 
 export const dropSchema = z.object({
-  studentId: z.coerce.number().int().positive(),
+  studentId: tokenIdSchema('S'),
   courseCode: z.string().trim().min(1).transform((value) => value.toUpperCase()),
 })
 
 export const gradeSchema = z.object({
-  enrollmentId: z.string().uuid(),
-  grade: z.union([z.number(), z.string().trim().min(1)]),
+  enrollmentId: tokenIdSchema('E'),
+  grade: z.union([z.number().min(1).max(5), z.null()]),
 })
