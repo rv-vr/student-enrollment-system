@@ -28,6 +28,8 @@ export type Admin = {
   name: string
 }
 
+export type HumanActor = Student | Instructor | Admin
+
 export type Enrollment = {
   id: string
   studentId: string
@@ -70,7 +72,10 @@ export const instructors: Instructor[] = [
   },
 ]
 
-export const admins: Admin[] = [{ id: makeEntityId('R', '1338'), name: 'Grace L. Chen' }]
+export const admins: Admin[] = [
+  { id: makeEntityId('R', '1338'), name: 'Grace L. Chen' },
+  { id: makeEntityId('F', '2406'), name: 'Tessa K. Ward' },
+]
 
 export const courses: Course[] = [
   {
@@ -134,6 +139,30 @@ export function getInstructor(instructorId: string) {
 
 export function getAdmin(adminId: string) {
   return admins.find((admin) => admin.id === adminId)
+}
+
+export function getHumanActor(actorId: string) {
+  return getStudent(actorId) ?? getInstructor(actorId) ?? getAdmin(actorId)
+}
+
+export function getHumanActorRole(actorId: string) {
+  if (getStudent(actorId)) {
+    return 'student' as const
+  }
+
+  if (getInstructor(actorId)) {
+    return 'instructor' as const
+  }
+
+  if (getAdmin(actorId)) {
+    return 'admin' as const
+  }
+
+  return undefined
+}
+
+export function getLastName(fullName: string) {
+  return fullName.trim().split(/\s+/).at(-1) ?? ''
 }
 
 export function getCourse(courseCode: string) {

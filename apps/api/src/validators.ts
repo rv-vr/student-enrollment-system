@@ -30,6 +30,13 @@ export const gradeSchema = z.object({
   grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
 })
 
+const humanActorIdSchema = actorIdSchema(['A', 'I', 'R', 'F'])
+
+export const loginSchema = z.object({
+  username: humanActorIdSchema,
+  password: z.string().trim().min(1),
+})
+
 type ValidationFailureResult = {
   success: false
   error: {
@@ -41,6 +48,9 @@ type ValidationHookOptions = {
   fieldAliases?: Record<string, string>
   fieldMessages?: Record<string, string>
   tokenFieldMessages?: Record<string, string>
+  statusCode?: number
+  fieldName?: string
+  errorMessage?: string
 }
 
 function isValidationFailure(result: unknown): result is ValidationFailureResult {
@@ -108,33 +118,35 @@ export function createValidationErrorHook(options: ValidationHookOptions = {}) {
     }
 
     const issue = result.error.issues[0]
+    const statusCode = options.statusCode ?? 400
 
     if (!issue) {
       return c.json(
         {
           success: false,
-          error: 'Invalid input.',
-          field: 'input',
+          error: options.errorMessage ?? 'Invalid input.',
+          field: options.fieldName ?? 'input',
         },
-        400,
+        statusCode,
       )
     }
 
-    const field = getValidationField(issue, options.fieldAliases ?? {})
+    const field = options.fieldName ?? getValidationField(issue, options.fieldAliases ?? {})
 
     return c.json(
       {
         success: false,
-        error: formatValidationError(field, issue, options),
+        error: options.errorMessage ?? formatValidationError(field, issue, options),
         field,
       },
-      400,
+      statusCode,
     )
   }
 }
 
 const studentTokenMessage = 'Invalid student ID format. Expected 2026-XXXX-A or 2026-XXXX-I.'
 const enrollmentTokenMessage = 'Invalid enrollment ID format. Expected a UUID.'
+const loginFailureMessage = 'Invalid credentials provided. Please check your ID and password.'
 
 export const studentValidationHook = createValidationErrorHook({
   fieldAliases: { id: 'studentId' },
@@ -150,4 +162,10 @@ export const enrollmentValidationHook = createValidationErrorHook({
     studentId: studentTokenMessage,
     enrollmentId: enrollmentTokenMessage,
   },
+})
+
+export const loginValidationHook = createValidationErrorHook({
+  statusCode: 401,
+  fieldName: 'auth',
+  errorMessage: loginFailureMessage,
 })

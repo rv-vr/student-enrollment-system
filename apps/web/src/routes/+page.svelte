@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { activeStudentId, getStudentName } from '$lib/stores/student'
+	import { authSession } from '$lib/stores/auth'
 	import { enrollStudent, getCourses } from '$lib/api/client'
 	import type { CourseCatalogEntry } from '$lib/api/types'
 	import { onMount } from 'svelte'
@@ -9,6 +9,7 @@
 	let savingCourseCode = $state<string | null>(null)
 	let alertMessage = $state('')
 	let alertTone = $state<'error' | 'success' | ''>('')
+	let session = $derived($authSession)
 
 	function showAlert(message: string, tone: 'error' | 'success') {
 		alertMessage = message
@@ -30,12 +31,17 @@
 	}
 
 	async function handleEnroll(courseCode: string) {
+		if (!session) {
+			showAlert('Sign in to enroll in a course.', 'error')
+			return
+		}
+
 		savingCourseCode = courseCode
 		alertMessage = ''
 		alertTone = ''
 
 		try {
-			const response = await enrollStudent($activeStudentId, courseCode)
+			const response = await enrollStudent(session.user.id, courseCode)
 			showAlert(response.message, 'success')
 			courses = await getCourses()
 		} catch (error) {
@@ -61,8 +67,12 @@
 				<p class="eyebrow">Course catalog</p>
 				<h2>Available courses</h2>
 				<p class="helper">
-					Acting as <strong>{getStudentName($activeStudentId)}</strong>. Use the buttons below to
-					enroll in the mock courses.
+					{#if session}
+						Logged in as <strong>{session.user.name}</strong> ({session.user.role}). Use the buttons below to
+						enroll in the mock courses.
+					{:else}
+						Loading your authenticated session.
+					{/if}
 				</p>
 			</div>
 			<div class="meta">

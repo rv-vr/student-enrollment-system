@@ -1,5 +1,25 @@
+export type AuthRole = 'student' | 'instructor' | 'admin'
+
+export type AuthUser = {
+  id: string
+  role: AuthRole
+  name: string
+}
+
+export type LoginResponse = {
+  success: true
+  token: string
+  user: AuthUser
+}
+
+export type ApiErrorResponse = {
+  success: false
+  error: string
+  field: string
+}
+
 export type Student = {
-  id: number
+  id: string
   name: string
 }
 
@@ -24,9 +44,9 @@ export type CourseAvailability = {
 
 export type EnrollmentRecord = {
   id: string
-  studentId: number
+  studentId: string
   courseCode: string
-  grade?: number | string
+  grade?: number | null
   createdAt: string
   updatedAt: string
   student?: Student

@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { authSession } from '$lib/stores/auth'
 	import { dropStudentCourse, getStudentCourses } from '$lib/api/client'
 	import type { StudentCoursesResponse } from '$lib/api/types'
-	import { activeStudentId, getStudentName } from '$lib/stores/student'
 	import { onMount } from 'svelte'
 
 	let studentCourses = $state<StudentCoursesResponse | null>(null)
@@ -9,13 +9,14 @@
 	let actionCourseCode = $state<string | null>(null)
 	let alertMessage = $state('')
 	let alertTone = $state<'error' | 'success' | ''>('')
+	let session = $derived($authSession)
 
 	function showAlert(message: string, tone: 'error' | 'success') {
 		alertMessage = message
 		alertTone = tone
 	}
 
-	async function refreshStudentCourses(studentId: number) {
+	async function refreshStudentCourses(studentId: string) {
 		loading = true
 		alertMessage = ''
 		alertTone = ''
@@ -31,14 +32,19 @@
 	}
 
 	async function handleDrop(courseCode: string) {
+		if (!session) {
+			showAlert('Sign in to manage your enrollments.', 'error')
+			return
+		}
+
 		actionCourseCode = courseCode
 		alertMessage = ''
 		alertTone = ''
 
 		try {
-			const response = await dropStudentCourse($activeStudentId, courseCode)
+			const response = await dropStudentCourse(session.user.id, courseCode)
 			showAlert(response.message, 'success')
-			studentCourses = await getStudentCourses($activeStudentId)
+			studentCourses = await getStudentCourses(session.user.id)
 		} catch (error) {
 			showAlert(error instanceof Error ? error.message : 'Unable to drop the course.', 'error')
 		} finally {
@@ -47,11 +53,9 @@
 	}
 
 	onMount(() => {
-		const unsubscribe = activeStudentId.subscribe((value) => {
-			void refreshStudentCourses(value)
-		})
-
-		return unsubscribe
+		if (session) {
+			void refreshStudentCourses(session.user.id)
+		}
 	})
 </script>
 
@@ -66,7 +70,11 @@
 				<p class="eyebrow">Student view</p>
 				<h2>My enrolled courses</h2>
 				<p class="helper">
-					Current student: <strong>{getStudentName($activeStudentId)}</strong>
+					{#if session}
+						Current account: <strong>{session.user.name}</strong> ({session.user.role})
+					{:else}
+						Loading authenticated account.
+					{/if}
 				</p>
 			</div>
 			<div class="meta">
