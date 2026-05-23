@@ -1,159 +1,175 @@
-# Turborepo starter
+# UniACES
 
-This Turborepo starter is maintained by the Turborepo core team.
+UniACES (University Academic Course Enrollment System) is a high-performance, type-safe multi-role academic portal optimized for serverless edge infrastructure. It includes a student portal with tabbed views, an instructor interface for roster management and grade submissions, and an administrative control queue featuring an asynchronous approval-gate pipeline.
 
-## Using this example
+## Architecture & Tech Stack
 
-Run the following command:
+This repository is organized as a Turborepo monorepo with the following production surfaces:
 
-```sh
-npx create-turbo@latest
+| Layer | Implementation | Notes |
+| --- | --- | --- |
+| Monorepo management | Turborepo | Root pipeline defined in `turbo.json` |
+| Backend API engine | Hono | RPC-enabled API mounted from `apps/api/src/index.ts` and deployed as a Cloudflare Worker |
+| Frontend app | SvelteKit / Svelte 5 | Client-side SPA behavior with route guards, layout shells, and utility-style component classes; deployed through Cloudflare Pages |
+| Type contract | Hono `AppType` + Zod + `InferResponseType` | End-to-end typing flows from backend routes into the frontend RPC client |
+
+
+### API routing map
+
+The API entrypoint in `apps/api/src/index.ts` mounts the current route surface:
+
+- `GET /` health / route index
+- `POST /auth/login`
+- `GET /courses`
+- `GET /courses/:code/availability`
+- `GET /students/:id/courses`
+- `GET /students/:id/notifications`
+- `POST /enroll`
+- `POST /drop`
+- `PATCH /grade`
+- `PATCH /enrollments/:id/grade`
+- `GET /admin/requests`
+- `PATCH /admin/requests/:id/decide`
+- `GET /instructor/classes`
+
+### Frontend route map
+
+The Svelte frontend currently includes these routes:
+
+- `/login` 
+- `/` 
+- `/courses` 
+- `/instructor` 
+- `/admin` 
+
+Shared client-side support lives in:
+
+- `apps/web/src/lib/api/client.ts`
+- `apps/web/src/lib/api/types.ts`
+- `apps/web/src/lib/stores/auth.ts`
+- `apps/web/src/lib/stores/student.ts`
+
+## Environment Configuration Matrix
+
+The repository currently uses the following exact environment variables and files.
+
+
+| Scope | File | Variables | Purpose |
+| --- | --- | --- | --- |
+| Root workspace env | `.env` | `PUBLIC_LOCAL_API`, `PUBLIC_PROD_API`, `JWT_SECRET` | Turbo watches this file and the web build consumes the public API URLs |
+| API local secret vault | `apps/api/.dev.vars` | `JWT_SECRET` | Wrangler local secret file for the Cloudflare Worker during development |
+| API production secrets | Cloudflare Workers Dashboard / `wrangler secret put` | `JWT_SECRET` | Secure production secret used by `c.env.JWT_SECRET` |
+
+Example root `.env`:
+
+```env
+PUBLIC_LOCAL_API=http://localhost:8787
+PUBLIC_PROD_API=https://student-enrollment-system.pages.dev
+JWT_SECRET=your-local-development-secret
 ```
 
-## What's inside?
+Example local API secret file:
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```env
+# apps/api/.dev.vars
+JWT_SECRET=your-local-development-secret
 ```
 
-Without global `turbo`, use your package manager:
+## Local Development Workflow
+
+1. Install dependencies from the repository root:
 
 ```sh
-cd my-turborepo
-npx turbo build
-npm dlx turbo build
-npm exec turbo build
+npm install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+2. Start both workspaces together:
 
 ```sh
-turbo build --filter=docs
+npm run dev
 ```
 
-Without global `turbo`:
+3. Run lint checks:
 
 ```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
+npm run lint
 ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+4. Apply Prettier formatting:
 
 ```sh
-cd my-turborepo
-turbo dev
+npm run format
 ```
 
-Without global `turbo`, use your package manager:
+5. Run the test suite:
 
 ```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
+npm run test
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+6. Run a clean type and build verification pass:
 
 ```sh
-turbo dev --filter=web
+npm run check-types
+npm run build
 ```
 
-Without global `turbo`:
+## Cloudflare Edge Production Deployment Playbook
+
+### Backend API deployment
+
+The API is shipped as a Cloudflare Worker from `apps/api`.
 
 ```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
+npx wrangler deploy
 ```
 
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Production secrets should be injected in Cloudflare directly, not committed to the repository:
 
 ```sh
-cd my-turborepo
-turbo login
+npx wrangler secret put JWT_SECRET
 ```
 
-Without global `turbo`, use your package manager:
+In the Cloudflare Dashboard, the equivalent location is the Worker’s `Variables & Secrets` panel.
+
+### Frontend Pages deployment
+
+The frontend is configured as a Cloudflare Pages target in `apps/web/wrangler.jsonc`, with output directed to the SvelteKit Cloudflare build directory.
+
+Production builds are produced from the repository root with Turbo:
 
 ```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
+npx turbo run build --filter=web
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+The Pages integration should point at the `apps/web` workspace and use the generated SvelteKit Cloudflare output (`.svelte-kit/cloudflare`).
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+### Deployment notes
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- Keep `PUBLIC_LOCAL_API` and `PUBLIC_PROD_API` aligned with the current environment before building the frontend.
+- Keep `JWT_SECRET` out of version control for production. Use `.dev.vars` only for local API development.
+- The backend and frontend both rely on the shared Hono route contract exported from `apps/api/src/index.ts` as `AppType`.
 
-```sh
-turbo link
-```
+## Quality Gates and CI
 
-Without global `turbo`:
+The CI workflow in `.github/workflows/ci.yml` performs:
 
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
+1. Install dependencies with `npm ci`
+2. Lint the workspace with `npm run lint`
+3. Run tests with `npm run test`
+4. Build the workspace with `npm run build`
 
-## Useful Links
+These checks mirror the local workflow and are intended to catch broken route contracts, formatting drift, and build regressions before merge.
 
-Learn more about the power of Turborepo:
+## Implementation Notes
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- The backend auth middleware validates `Authorization: Bearer ...` tokens against the typed Cloudflare binding `JWT_SECRET`.
+- The frontend uses role-aware route guards and client-side redirects in the Svelte layouts to keep the UX aligned with backend authorization.
+- The instructor dashboard and admin queue both operate as browser-driven client views backed by Hono RPC calls.
+- The student portal is centered around the root route and the course catalog route, with the login page at `/login`.
+
+## Repository Maintenance
+
+- Keep route additions in `apps/api/src/routes/` and export them from `apps/api/src/index.ts` so `AppType` stays accurate.
+- Update `apps/web/src/lib/api/client.ts` whenever backend routes change so the typed RPC client stays in sync.
+- Prefer `npm run format` before `npm run lint` when you want Prettier to rewrite files.
