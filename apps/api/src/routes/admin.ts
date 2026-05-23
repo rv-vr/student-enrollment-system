@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 
-import { requireAuth, type AppVariables } from '../auth'
+import { requireAuth, type AppBindings, type AppVariables } from '../auth'
 import {
   buildEnrollmentView,
   createNotification,
@@ -17,17 +17,17 @@ import {
   enrollmentValidationHook,
 } from '../validators'
 
-export const adminRoutes = new Hono<{ Variables: AppVariables }>()
+export const adminRoutes = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>()
 
 adminRoutes.use('*', requireAuth)
-adminRoutes.use('*', (c, next) => {
+adminRoutes.use('*', async (c, next) => {
   const user = c.get('user')
 
   if (user.role !== 'admin') {
     return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
   }
 
-  return next()
+  await next()
 })
 
 adminRoutes.get('/requests', (c) => {

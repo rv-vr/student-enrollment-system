@@ -1,11 +1,19 @@
 import { cloudflare } from '@cloudflare/vite-plugin'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-export default defineConfig({
-  plugins: [
-    cloudflare() // Keeps your Hono code closely emulating the Cloudflare Workers runtime
-  ],
-  server: {
-    port: 8787 // Locks your backend to a predictable port
-  }
-})
+const webDir = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(webDir, '../..');
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, repoRoot, '');
+
+  Object.assign(process.env, env);
+
+  return {
+    plugins: [cloudflare()],
+    envDir: repoRoot,
+    server: { port: 8787 },
+  };
+});

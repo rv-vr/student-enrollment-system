@@ -10,6 +10,8 @@ import type {
   StudentCoursesResponse,
 } from "./types";
 import type { InferResponseType } from "hono/client";
+import { PUBLIC_LOCAL_API, PUBLIC_PROD_API } from '$env/static/public';
+import { dev } from '$app/environment';
 
 export class ApiError extends Error {
   constructor(
@@ -22,11 +24,14 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl = import.meta.env.PROD 
-     ? 'https://api.share-media.workers.dev/' 
-     : 'http://localhost:8787';
+// API base URL is driven by an environment variable so it can be changed per-deploy
+// Set PROD_API in your dev/.env or in your CI/Cloudflare Pages environment.
+// Fallbacks: LOCAL_API -> PROD_API
+export const API_BASE = dev ?
+  (PUBLIC_LOCAL_API as string) :
+  (PUBLIC_PROD_API as string);
 
-const client = hc<AppType>(baseUrl, {
+const client = hc<AppType>(API_BASE, {
   headers: () => getAuthHeaders(),
 });
 

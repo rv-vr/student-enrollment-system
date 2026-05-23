@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
-import { requireAuth, type AppVariables } from '../auth'
+import { requireAuth, type AppBindings, type AppVariables } from '../auth'
 import { getEnrollmentsForCourse, buildEnrollmentView, courses } from '../store'
 
-export const instructorRoutes = new Hono<{ Variables: AppVariables }>()
+export const instructorRoutes = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>()
 
 instructorRoutes.use('*', requireAuth)
 

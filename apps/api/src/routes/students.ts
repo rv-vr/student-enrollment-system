@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { requireAuth, type AppVariables } from '../auth'
+import { requireAuth, type AppBindings, type AppVariables } from '../auth'
 import { studentIdParamSchema, studentValidationHook } from '../validators'
 import {
   buildEnrollmentView,
@@ -10,7 +10,7 @@ import {
   getStudent,
 } from '../store'
 
-export const studentsRoutes = new Hono<{ Variables: AppVariables }>()
+export const studentsRoutes = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>()
 
 studentsRoutes.use('*', requireAuth)
 

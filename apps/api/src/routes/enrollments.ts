@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { requireAuth, type AppVariables } from '../auth'
+import { requireAuth, type AppBindings, type AppVariables } from '../auth'
 import {
   dropSchema,
   enrollSchema,
@@ -22,7 +22,7 @@ import {
   updateEnrollmentGrade,
 } from '../store'
 
-export const enrollmentsRoutes = new Hono<{ Variables: AppVariables }>()
+export const enrollmentsRoutes = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>()
 
 enrollmentsRoutes.use('*', requireAuth)
 

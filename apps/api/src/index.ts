@@ -5,8 +5,9 @@ import { coursesRoutes } from './routes/courses'
 import { enrollmentsRoutes } from './routes/enrollments'
 import { studentsRoutes } from './routes/students'
 import { instructorRoutes } from './routes/instructor'
+import { type AppBindings } from './auth'
 
-const app = new Hono()
+const app = new Hono<{ Bindings: AppBindings }>()
 
 app.get('/', (c) => {
   return c.json({

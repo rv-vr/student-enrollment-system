@@ -16,6 +16,10 @@ export type AppVariables = {
   user: AuthUser
 }
 
+export type AppBindings = {
+  JWT_SECRET: string
+}
+
 const authUserSchema = z.object({
   id: z.string(),
   role: z.enum(['student', 'instructor', 'admin']),
@@ -61,7 +65,7 @@ export function authenticateActor(username: string, password: string) {
   } satisfies AuthUser
 }
 
-export const requireAuth = createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
+export const requireAuth = createMiddleware<{ Bindings: AppBindings; Variables: AppVariables }>(async (c, next) => {
   const header = c.req.header('Authorization') ?? ''
   const match = header.match(/^Bearer\s+(.+)$/i)
 
@@ -69,7 +73,7 @@ export const requireAuth = createMiddleware<{ Variables: AppVariables }>(async (
     return c.json({ success: false, error: 'Unauthorized', field: 'auth' }, 401)
   }
 
-  const secret = (c.env && (c.env as any).JWT_SECRET) as string | undefined
+  const secret = c.env.JWT_SECRET
 
   if (!secret) {
     // Fail closed if secret missing — server misconfiguration
