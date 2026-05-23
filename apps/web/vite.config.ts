@@ -5,10 +5,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const webDir = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(webDir, '../..');
+const repoRoot = resolve(webDir, "../..");
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, repoRoot, '');
+  const env = loadEnv(mode, repoRoot, "");
 
   Object.assign(process.env, env);
 

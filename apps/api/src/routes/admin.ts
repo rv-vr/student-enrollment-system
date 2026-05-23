@@ -1,7 +1,7 @@
-import { zValidator } from '@hono/zod-validator'
-import { Hono } from 'hono'
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
 
-import { requireAuth, type AppBindings, type AppVariables } from '../auth'
+import { requireAuth, type AppBindings, type AppVariables } from "../auth";
 import {
   buildEnrollmentView,
   createNotification,
@@ -10,81 +10,92 @@ import {
   getPendingEnrollments,
   getRemainingSeats,
   updateEnrollmentStatus,
-} from '../store'
+} from "../store";
 import {
   adminDecisionSchema,
   enrollmentIdParamSchema,
   enrollmentValidationHook,
-} from '../validators'
+} from "../validators";
 
-export const adminRoutes = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>()
+export const adminRoutes = new Hono<{
+  Bindings: AppBindings;
+  Variables: AppVariables;
+}>();
 
-adminRoutes.use('*', requireAuth)
-adminRoutes.use('*', async (c, next) => {
-  const user = c.get('user')
+adminRoutes.use("*", requireAuth);
+adminRoutes.use("*", async (c, next) => {
+  const user = c.get("user");
 
-  if (user.role !== 'admin') {
-    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
+  if (user.role !== "admin") {
+    return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
   }
 
-  await next()
-})
+  await next();
+});
 
-adminRoutes.get('/requests', (c) => {
-  const pending = getPendingEnrollments().map((enrollment) => buildEnrollmentView(enrollment))
+adminRoutes.get("/requests", (c) => {
+  const pending = getPendingEnrollments().map((enrollment) =>
+    buildEnrollmentView(enrollment),
+  );
 
-  return c.json({ requests: pending })
-})
+  return c.json({ requests: pending });
+});
 
 adminRoutes.patch(
-  '/requests/:id/decide',
-  zValidator('param', enrollmentIdParamSchema, enrollmentValidationHook),
-  zValidator('json', adminDecisionSchema, enrollmentValidationHook),
+  "/requests/:id/decide",
+  zValidator("param", enrollmentIdParamSchema, enrollmentValidationHook),
+  zValidator("json", adminDecisionSchema, enrollmentValidationHook),
   (c) => {
-    const { id } = c.req.valid('param')
-    const { action } = c.req.valid('json')
+    const { id } = c.req.valid("param");
+    const { action } = c.req.valid("json");
 
-    const enrollment = getEnrollment(id)
+    const enrollment = getEnrollment(id);
 
     if (!enrollment) {
-      return c.json({ message: 'Enrollment request not found' }, 404)
+      return c.json({ message: "Enrollment request not found" }, 404);
     }
 
-    if (enrollment.status !== 'pending') {
-      return c.json({ message: 'Enrollment request already decided' }, 409)
+    if (enrollment.status !== "pending") {
+      return c.json({ message: "Enrollment request already decided" }, 409);
     }
 
-    const nextStatus = action === 'approve' ? 'approved' : 'rejected'
+    const nextStatus = action === "approve" ? "approved" : "rejected";
 
-    if (nextStatus === 'approved') {
-      const course = getCourse(enrollment.courseCode)
+    if (nextStatus === "approved") {
+      const course = getCourse(enrollment.courseCode);
 
       if (!course) {
-        return c.json({ message: 'Course not found' }, 404)
+        return c.json({ message: "Course not found" }, 404);
       }
 
       if (getRemainingSeats(course.code) <= 0) {
-        return c.json({ message: 'Course is full. Request cannot be approved.' }, 409)
+        return c.json(
+          { message: "Course is full. Request cannot be approved." },
+          409,
+        );
       }
     }
 
-    const updatedEnrollment = updateEnrollmentStatus(id, nextStatus)
+    const updatedEnrollment = updateEnrollmentStatus(id, nextStatus);
 
     if (!updatedEnrollment) {
-      return c.json({ message: 'Enrollment request not found' }, 404)
+      return c.json({ message: "Enrollment request not found" }, 404);
     }
 
     const notificationMessage =
-      nextStatus === 'approved'
+      nextStatus === "approved"
         ? `Your enrollment in ${updatedEnrollment.courseCode} was approved.`
-        : `Your enrollment in ${updatedEnrollment.courseCode} was denied.`
+        : `Your enrollment in ${updatedEnrollment.courseCode} was denied.`;
 
-    const notification = createNotification(updatedEnrollment.studentId, notificationMessage)
+    const notification = createNotification(
+      updatedEnrollment.studentId,
+      notificationMessage,
+    );
 
     return c.json({
-      message: 'Enrollment request decision recorded',
+      message: "Enrollment request decision recorded",
       enrollment: buildEnrollmentView(updatedEnrollment),
       notification,
-    })
+    });
   },
-)
+);

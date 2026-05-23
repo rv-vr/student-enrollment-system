@@ -2,5 +2,5 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "student-enrollment-system", // This MUST match your Cloudflare Pages project name
   "pages_build_output_dir": ".svelte-kit/cloudflare",
-  "compatibility_date": "2026-05-23"
+  "compatibility_date": "2026-05-23",
 }

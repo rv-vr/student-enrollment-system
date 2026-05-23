@@ -1,12 +1,12 @@
-import { zValidator } from '@hono/zod-validator'
-import { Hono } from 'hono'
-import { requireAuth, type AppBindings, type AppVariables } from '../auth'
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { requireAuth, type AppBindings, type AppVariables } from "../auth";
 import {
   dropSchema,
   enrollSchema,
   enrollmentValidationHook,
   gradeSchema,
-} from '../validators'
+} from "../validators";
 import {
   buildEnrollmentView,
   createEnrollment,
@@ -20,211 +20,235 @@ import {
   isPassingGrade,
   removeEnrollment,
   updateEnrollmentGrade,
-} from '../store'
+} from "../store";
 
-export const enrollmentsRoutes = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>()
+export const enrollmentsRoutes = new Hono<{
+  Bindings: AppBindings;
+  Variables: AppVariables;
+}>();
 
-enrollmentsRoutes.use('*', requireAuth)
+enrollmentsRoutes.use("*", requireAuth);
 
-enrollmentsRoutes.post('/enroll', zValidator('json', enrollSchema, enrollmentValidationHook), (c) => {
-  const user = c.get('user')
-  const { studentId, courseCode } = c.req.valid('json')
+enrollmentsRoutes.post(
+  "/enroll",
+  zValidator("json", enrollSchema, enrollmentValidationHook),
+  (c) => {
+    const user = c.get("user");
+    const { studentId, courseCode } = c.req.valid("json");
 
-  if (user.role !== 'student') {
-    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
-  }
+    if (user.role !== "student") {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
 
-  if (user.id !== studentId) {
-    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
-  }
+    if (user.id !== studentId) {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
 
-  const student = getStudent(studentId)
+    const student = getStudent(studentId);
 
-  if (!student) {
-    return c.json({ message: 'Student not found' }, 404)
-  }
+    if (!student) {
+      return c.json({ message: "Student not found" }, 404);
+    }
 
-  const course = getCourse(courseCode)
+    const course = getCourse(courseCode);
 
-  if (!course) {
-    return c.json({ message: 'Course not found' }, 404)
-  }
+    if (!course) {
+      return c.json({ message: "Course not found" }, 404);
+    }
 
-  if (hasPassedCourse(student.id, course.code)) {
-    return c.json({ message: 'Student already passed this course' }, 409)
-  }
+    if (hasPassedCourse(student.id, course.code)) {
+      return c.json({ message: "Student already passed this course" }, 409);
+    }
 
-  if (hasActiveEnrollment(student.id, course.code)) {
-    return c.json({ message: 'Student already enrolled in this course' }, 409)
-  }
+    if (hasActiveEnrollment(student.id, course.code)) {
+      return c.json(
+        { message: "Student already enrolled in this course" },
+        409,
+      );
+    }
 
-  if (getRemainingSeats(course.code) <= 0) {
-    return c.json({ message: 'Course is full' }, 409)
-  }
+    if (getRemainingSeats(course.code) <= 0) {
+      return c.json({ message: "Course is full" }, 409);
+    }
 
-  if (!hasSatisfiedPrerequisites(student.id, course)) {
+    if (!hasSatisfiedPrerequisites(student.id, course)) {
+      return c.json(
+        {
+          message: "Prerequisites not satisfied",
+          prerequisites: course.prerequisiteCodes,
+        },
+        400,
+      );
+    }
+
+    const enrollment = createEnrollment(student.id, course.code);
+    if (!enrollment) {
+      return c.json({ message: "Unable to create enrollment" }, 500);
+    }
+    const remainingSeats = getRemainingSeats(course.code);
+
     return c.json(
       {
-        message: 'Prerequisites not satisfied',
-        prerequisites: course.prerequisiteCodes,
+        message: "Enrollment request submitted",
+        enrollment: buildEnrollmentView(enrollment),
+        availability: {
+          capacity: course.capacity,
+          enrolledCount: course.capacity - remainingSeats,
+          remainingSeats,
+        },
       },
-      400,
-    )
-  }
+      201,
+    );
+  },
+);
 
-  const enrollment = createEnrollment(student.id, course.code)
-  if (!enrollment) {
-    return c.json({ message: 'Unable to create enrollment' }, 500)
-  }
-  const remainingSeats = getRemainingSeats(course.code)
+enrollmentsRoutes.post(
+  "/drop",
+  zValidator("json", dropSchema, enrollmentValidationHook),
+  (c) => {
+    const user = c.get("user");
+    const { studentId, courseCode } = c.req.valid("json");
 
-  return c.json(
-    {
-      message: 'Enrollment request submitted',
-      enrollment: buildEnrollmentView(enrollment),
+    if (user.role !== "student") {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
+
+    if (user.id !== studentId) {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
+
+    const course = getCourse(courseCode);
+
+    if (!course) {
+      return c.json({ message: "Course not found" }, 404);
+    }
+
+    const removedEnrollment = removeEnrollment(studentId, course.code);
+
+    if (!removedEnrollment) {
+      return c.json({ message: "Enrollment not found" }, 404);
+    }
+
+    const remainingSeats = getRemainingSeats(course.code);
+
+    return c.json({
+      message: "Enrollment dropped",
+      enrollment: buildEnrollmentView(removedEnrollment),
       availability: {
         capacity: course.capacity,
         enrolledCount: course.capacity - remainingSeats,
         remainingSeats,
       },
-    },
-    201,
-  )
-})
-
-enrollmentsRoutes.post('/drop', zValidator('json', dropSchema, enrollmentValidationHook), (c) => {
-  const user = c.get('user')
-  const { studentId, courseCode } = c.req.valid('json')
-
-  if (user.role !== 'student') {
-    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
-  }
-
-  if (user.id !== studentId) {
-    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
-  }
-
-  const course = getCourse(courseCode)
-
-  if (!course) {
-    return c.json({ message: 'Course not found' }, 404)
-  }
-
-  const removedEnrollment = removeEnrollment(studentId, course.code)
-
-  if (!removedEnrollment) {
-    return c.json({ message: 'Enrollment not found' }, 404)
-  }
-
-  const remainingSeats = getRemainingSeats(course.code)
-
-  return c.json({
-    message: 'Enrollment dropped',
-    enrollment: buildEnrollmentView(removedEnrollment),
-    availability: {
-      capacity: course.capacity,
-      enrolledCount: course.capacity - remainingSeats,
-      remainingSeats,
-    },
-  })
-})
+    });
+  },
+);
 
 // Patch grade by enrollmentId in body - keep backward compatibility
-enrollmentsRoutes.patch('/grade', zValidator('json', gradeSchema, enrollmentValidationHook), (c) => {
-  const user = c.get('user')
-  const { enrollmentId, grade } = c.req.valid('json')
+enrollmentsRoutes.patch(
+  "/grade",
+  zValidator("json", gradeSchema, enrollmentValidationHook),
+  (c) => {
+    const user = c.get("user");
+    const { enrollmentId, grade } = c.req.valid("json");
 
-  if (user.role === 'student') {
-    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
-  }
+    if (user.role === "student") {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
 
-  const enrollment = getEnrollment(enrollmentId)
+    const enrollment = getEnrollment(enrollmentId);
 
-  if (!enrollment) {
-    return c.json({ message: 'Enrollment not found' }, 404)
-  }
+    if (!enrollment) {
+      return c.json({ message: "Enrollment not found" }, 404);
+    }
 
-  // Ownership check: instructor must match enrollment.instructorId or course.assignedTeacherId
-  const course = getCourse(enrollment.courseCode)
-  const ownerId = enrollment.instructorId ?? course?.assignedTeacherId
+    // Ownership check: instructor must match enrollment.instructorId or course.assignedTeacherId
+    const course = getCourse(enrollment.courseCode);
+    const ownerId = enrollment.instructorId ?? course?.assignedTeacherId;
 
-  if (user.role === 'instructor' && user.id !== ownerId) {
-    return c.json(
-      {
-        success: false,
-        error: 'Access Denied: You are not authorized to assign grades to this course section.',
-        field: 'auth',
-      },
-      403,
-    )
-  }
+    if (user.role === "instructor" && user.id !== ownerId) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Access Denied: You are not authorized to assign grades to this course section.",
+          field: "auth",
+        },
+        403,
+      );
+    }
 
-  const updatedEnrollment = updateEnrollmentGrade(enrollmentId, grade)
+    const updatedEnrollment = updateEnrollmentGrade(enrollmentId, grade);
 
-  if (!updatedEnrollment) {
-    return c.json({ message: 'Enrollment not found' }, 404)
-  }
+    if (!updatedEnrollment) {
+      return c.json({ message: "Enrollment not found" }, 404);
+    }
 
-  return c.json({
-    message:
-      updatedEnrollment.grade === null
-        ? 'Grade cleared'
-        : isPassingGrade(updatedEnrollment.grade)
-        ? 'Passing grade recorded'
-        : 'Grade recorded',
-    enrollment: buildEnrollmentView(updatedEnrollment),
-  })
-})
+    return c.json({
+      message:
+        updatedEnrollment.grade === null
+          ? "Grade cleared"
+          : isPassingGrade(updatedEnrollment.grade)
+            ? "Passing grade recorded"
+            : "Grade recorded",
+      enrollment: buildEnrollmentView(updatedEnrollment),
+    });
+  },
+);
 
 // New route: PATCH /enrollments/:id/grade — grade by path param (secure + validate)
-import { z } from 'zod'
+import { z } from "zod";
 
 const gradeOnlySchema = z.object({
   grade: z.union([z.number().min(1).max(5), z.null()]),
-})
+});
 
-enrollmentsRoutes.patch('/enrollments/:id/grade', zValidator('json', gradeOnlySchema, enrollmentValidationHook), (c) => {
-  const user = c.get('user')
-  const { id } = c.req.param()
-  const { grade } = c.req.valid('json') as { grade: number | null }
+enrollmentsRoutes.patch(
+  "/enrollments/:id/grade",
+  zValidator("json", gradeOnlySchema, enrollmentValidationHook),
+  (c) => {
+    const user = c.get("user");
+    const { id } = c.req.param();
+    const { grade } = c.req.valid("json") as { grade: number | null };
 
-  if (user.role === 'student') {
-    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
-  }
+    if (user.role === "student") {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
 
-  const enrollment = getEnrollment(id)
+    const enrollment = getEnrollment(id);
 
-  if (!enrollment) {
-    return c.json({ message: 'Enrollment not found' }, 404)
-  }
+    if (!enrollment) {
+      return c.json({ message: "Enrollment not found" }, 404);
+    }
 
-  const course = getCourse(enrollment.courseCode)
-  const ownerId = enrollment.instructorId ?? course?.assignedTeacherId
+    const course = getCourse(enrollment.courseCode);
+    const ownerId = enrollment.instructorId ?? course?.assignedTeacherId;
 
-  if (user.role === 'instructor' && user.id !== ownerId) {
-    return c.json(
-      {
-        success: false,
-        error: 'Access Denied: You are not authorized to assign grades to this course section.',
-        field: 'auth',
-      },
-      403,
-    )
-  }
+    if (user.role === "instructor" && user.id !== ownerId) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Access Denied: You are not authorized to assign grades to this course section.",
+          field: "auth",
+        },
+        403,
+      );
+    }
 
-  const updatedEnrollment = updateEnrollmentGrade(id, grade)
+    const updatedEnrollment = updateEnrollmentGrade(id, grade);
 
-  if (!updatedEnrollment) {
-    return c.json({ message: 'Enrollment not found' }, 404)
-  }
+    if (!updatedEnrollment) {
+      return c.json({ message: "Enrollment not found" }, 404);
+    }
 
-  return c.json({
-    message:
-      updatedEnrollment.grade === null
-        ? 'Grade cleared'
-        : isPassingGrade(updatedEnrollment.grade)
-        ? 'Passing grade recorded'
-        : 'Grade recorded',
-    enrollment: buildEnrollmentView(updatedEnrollment),
-  })
-})
+    return c.json({
+      message:
+        updatedEnrollment.grade === null
+          ? "Grade cleared"
+          : isPassingGrade(updatedEnrollment.grade)
+            ? "Passing grade recorded"
+            : "Grade recorded",
+      enrollment: buildEnrollmentView(updatedEnrollment),
+    });
+  },
+);
