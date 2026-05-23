@@ -84,8 +84,10 @@
       return;
     }
 
-    void refreshEnrolled();
-    void refreshCatalog();
+    void (async () => {
+      await refreshEnrolled();
+      await refreshCatalog();
+    })();
   });
 </script>
 
