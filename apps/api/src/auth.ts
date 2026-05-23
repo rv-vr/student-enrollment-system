@@ -16,22 +16,24 @@ export type AppVariables = {
   user: AuthUser
 }
 
-export const authJwtSecret = 'dev-secret-key-2026'
-
 const authUserSchema = z.object({
   id: z.string(),
   role: z.enum(['student', 'instructor', 'admin']),
   name: z.string(),
 }).passthrough()
 
-export async function createAuthToken(user: AuthUser) {
+export async function createAuthToken(secret: string, user: AuthUser) {
+  if (!secret || typeof secret !== 'string' || secret.trim() === '') {
+    throw new Error('Server misconfiguration: JWT secret is not set')
+  }
+
   return sign(
     {
       ...user,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 60 * 60 * 8,
     },
-    authJwtSecret,
+    secret,
   )
 }
 
@@ -67,8 +69,16 @@ export const requireAuth = createMiddleware<{ Variables: AppVariables }>(async (
     return c.json({ success: false, error: 'Unauthorized', field: 'auth' }, 401)
   }
 
+  const secret = (c.env && (c.env as any).JWT_SECRET) as string | undefined
+
+  if (!secret) {
+    // Fail closed if secret missing — server misconfiguration
+    return c.json({ success: false, error: 'Server misconfiguration: JWT secret missing' }, 500)
+  }
+
   try {
-    const decoded = await verify(match[1], authJwtSecret, 'HS256')
+    // Enforce expected algorithm explicitly (HS256) during verification
+    const decoded = await verify(match[1], secret, 'HS256')
     const parsed = authUserSchema.safeParse(decoded)
 
     if (!parsed.success) {
@@ -77,7 +87,7 @@ export const requireAuth = createMiddleware<{ Variables: AppVariables }>(async (
 
     c.set('user', parsed.data)
     await next()
-  } catch {
+  } catch (err) {
     return c.json({ success: false, error: 'Unauthorized', field: 'auth' }, 401)
   }
 })

@@ -21,7 +21,13 @@ authRoutes.post('/login', zValidator('json', loginSchema, loginValidationHook), 
     )
   }
 
-  const token = await createAuthToken(user)
+  const secret = (c.env && (c.env as any).JWT_SECRET) as string | undefined
+
+  if (!secret) {
+    return c.json({ success: false, error: 'Server misconfiguration: JWT secret missing' }, 500)
+  }
+
+  const token = await createAuthToken(secret, user)
 
   return c.json({
     success: true,
