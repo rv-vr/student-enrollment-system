@@ -22,7 +22,11 @@ export class ApiError extends Error {
   }
 }
 
-const client = hc<AppType>("http://localhost:8787", {
+const baseUrl = import.meta.env.PROD 
+     ? 'https://api.share-media.workers.dev/' 
+     : 'http://localhost:8787';
+
+const client = hc<AppType>(baseUrl, {
   headers: () => getAuthHeaders(),
 });
 
