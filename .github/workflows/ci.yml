@@ -11,6 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PUBLIC_LOCAL_API: http://localhost:8787
+      PUBLIC_PROD_API: https://student-enrollment-system.pages.dev
 
     steps:
       - name: Checkout repository
