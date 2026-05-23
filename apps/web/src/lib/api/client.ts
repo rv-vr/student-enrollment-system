@@ -26,8 +26,18 @@ const client = hc<AppType>("http://localhost:8787", {
   headers: () => getAuthHeaders(),
 });
 
+const studentNotificationsGet = client.students[":id"].notifications.$get;
+
 export type InstructorClassesResponse = InferResponseType<
   typeof client.instructor.classes.$get
+>;
+
+export type AdminRequestsResponse = InferResponseType<
+  typeof client.admin.requests.$get
+>;
+
+export type StudentNotificationsResponse = InferResponseType<
+  typeof studentNotificationsGet
 >;
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -72,6 +82,22 @@ export async function getInstructorClasses() {
   );
 }
 
+export async function getAdminRequests() {
+  return readJson<AdminRequestsResponse>(await client.admin.requests.$get());
+}
+
+export async function decideAdminRequest(
+  enrollmentId: string,
+  action: "approve" | "deny",
+) {
+  return readJson<MutationResponse>(
+    await client.admin.requests[":id"].decide.$patch({
+      param: { id: enrollmentId },
+      json: { action },
+    }),
+  );
+}
+
 export async function getCourseAvailability(courseCode: string) {
   return readJson<CourseAvailability>(
     await client.courses[":code"].availability.$get({
@@ -83,6 +109,14 @@ export async function getCourseAvailability(courseCode: string) {
 export async function getStudentCourses(studentId: string) {
   return readJson<StudentCoursesResponse>(
     await client.students[":id"].courses.$get({
+      param: { id: String(studentId) },
+    }),
+  );
+}
+
+export async function getStudentNotifications(studentId: string) {
+  return readJson<StudentNotificationsResponse>(
+    await studentNotificationsGet({
       param: { id: String(studentId) },
     }),
   );

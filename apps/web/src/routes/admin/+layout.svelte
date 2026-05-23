@@ -7,11 +7,13 @@
   let session = $derived($authSession);
 
   $effect(() => {
-    if (!session) return;
+    if (!session) {
+      void goto(resolve("/login"));
+      return;
+    }
 
     if (session.user.role !== "admin") {
-      const target = session.user.role === "instructor" ? "/instructor" : "/";
-      void goto(resolve(target));
+      void goto(resolve("/login"));
     }
   });
 </script>
