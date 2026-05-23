@@ -1,5 +1,5 @@
 {
-  "name": "seces",
+  "name": "uniaces",
   "private": true,
   "scripts": {
     "build": "turbo run build",
