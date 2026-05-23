@@ -9,6 +9,7 @@ import type {
   MutationResponse,
   StudentCoursesResponse,
 } from "./types";
+import type { InferResponseType } from "hono/client";
 
 export class ApiError extends Error {
   constructor(
@@ -24,6 +25,10 @@ export class ApiError extends Error {
 const client = hc<AppType>("http://localhost:8787", {
   headers: () => getAuthHeaders(),
 });
+
+export type InstructorClassesResponse = InferResponseType<
+  typeof client.instructor.classes.$get
+>;
 
 async function readJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => null);
@@ -59,6 +64,12 @@ export async function loginWithCredentials(username: string, password: string) {
 
 export async function getCourses() {
   return readJson<CourseCatalogEntry[]>(await client.courses.$get());
+}
+
+export async function getInstructorClasses() {
+  return readJson<InstructorClassesResponse>(
+    await client.instructor.classes.$get(),
+  );
 }
 
 export async function getCourseAvailability(courseCode: string) {
@@ -97,9 +108,11 @@ export async function updateEnrollmentGrade(
   enrollmentId: string,
   grade: number | string,
 ) {
+  // Prefer path-based grade endpoint when available
   return readJson<MutationResponse>(
-    await client.grade.$patch({
-      json: { enrollmentId, grade },
+    await client["enrollments"][":id"].grade.$patch({
+      param: { id: String(enrollmentId) },
+      json: { grade: grade === "" ? null : Number(grade) },
     }),
   );
 }

@@ -61,12 +61,12 @@ export const students: Student[] = [
 
 export const instructors: Instructor[] = [
   {
-    id: makeEntityId('I', '2814'),
+    id: makeEntityId('R', '2814'),
     name: 'Ethan J. Moore',
     taughtCourseCodes: ['CS101', 'CS102'],
   },
   {
-    id: makeEntityId('I', '9056'),
+    id: makeEntityId('F', '9056'),
     name: 'Lena K. Reed',
     taughtCourseCodes: ['CS201'],
   },
