@@ -15,7 +15,9 @@ export type Course = {
 
 export type GradeValue = number | null
 
-export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'DENIED'
+export type EnrollmentStatus = 'pending' | 'approved' | 'rejected'
+
+export type NotificationReadStatus = 'unread' | 'read'
 
 export type Instructor = {
   id: string
@@ -34,12 +36,20 @@ export type Enrollment = {
   id: string
   studentId: string
   courseCode: string
-  approvalStatus: ApprovalStatus
+  status: EnrollmentStatus
   section: string
   instructorId: string | null
   grade: GradeValue
   createdAt: string
   updatedAt: string
+}
+
+export type Notification = {
+  id: string
+  studentId: string
+  message: string
+  timestamp: string
+  readStatus: NotificationReadStatus
 }
 
 // Grade scale: lower numbers are better. 1.00 is the highest mark, 5.00 is the failing edge.
@@ -109,7 +119,7 @@ export const enrollments: Enrollment[] = [
     id: '61b1b5d5-5b4f-4b68-8f0d-6bf3f3cc3d81',
     studentId: students[0].id,
     courseCode: 'CS101',
-    approvalStatus: 'APPROVED',
+    status: 'approved',
     section: students[0].section,
     instructorId: courses[0].assignedTeacherId,
     grade: 1.25,
@@ -120,7 +130,7 @@ export const enrollments: Enrollment[] = [
     id: 'fbb69bc6-5f2c-4c8d-9b5c-2c3d3f7b4f91',
     studentId: students[1].id,
     courseCode: 'CS102',
-    approvalStatus: 'PENDING',
+    status: 'pending',
     section: students[1].section,
     instructorId: courses[1].assignedTeacherId,
     grade: null,
@@ -128,6 +138,8 @@ export const enrollments: Enrollment[] = [
     updatedAt: '2026-05-19T08:15:00.000Z',
   },
 ]
+
+export const notifications: Notification[] = []
 
 export function getStudent(studentId: string) {
   return students.find((student) => student.id === studentId)
@@ -173,6 +185,10 @@ export function getEnrollment(enrollmentId: string) {
   return enrollments.find((enrollment) => enrollment.id === enrollmentId)
 }
 
+export function getNotificationsForStudent(studentId: string) {
+  return notifications.filter((notification) => notification.studentId === studentId)
+}
+
 export function getEnrollmentsForStudent(studentId: string) {
   return enrollments.filter((enrollment) => enrollment.studentId === studentId)
 }
@@ -190,7 +206,7 @@ export function hasPassedCourse(studentId: string, courseCode: string) {
     (enrollment) =>
       enrollment.studentId === studentId &&
       enrollment.courseCode === courseCode &&
-      enrollment.approvalStatus === 'APPROVED' &&
+      enrollment.status === 'approved' &&
       isPassingGrade(enrollment.grade),
   )
 }
@@ -198,7 +214,9 @@ export function hasPassedCourse(studentId: string, courseCode: string) {
 export function hasActiveEnrollment(studentId: string, courseCode: string) {
   return enrollments.some(
     (enrollment) =>
-      enrollment.studentId === studentId && enrollment.courseCode === courseCode,
+      enrollment.studentId === studentId &&
+      enrollment.courseCode === courseCode &&
+      enrollment.status !== 'rejected',
   )
 }
 
@@ -207,7 +225,9 @@ export function getCompletedCourses(studentId: string) {
 }
 
 export function getActiveEnrollmentCount(courseCode: string) {
-  return getEnrollmentsForCourse(courseCode).length
+  return getEnrollmentsForCourse(courseCode).filter(
+    (enrollment) => enrollment.status === 'approved',
+  ).length
 }
 
 export function getRemainingSeats(courseCode: string) {
@@ -239,7 +259,7 @@ export function createEnrollment(studentId: string, courseCode: string) {
     id: crypto.randomUUID(),
     studentId,
     courseCode,
-    approvalStatus: 'PENDING',
+    status: 'pending',
     section: student.section,
     instructorId: course.assignedTeacherId,
     grade: null,
@@ -277,6 +297,37 @@ export function updateEnrollmentGrade(enrollmentId: string, grade: GradeValue) {
   enrollment.updatedAt = new Date().toISOString()
 
   return enrollment
+}
+
+export function getPendingEnrollments() {
+  return enrollments.filter((enrollment) => enrollment.status === 'pending')
+}
+
+export function updateEnrollmentStatus(enrollmentId: string, status: EnrollmentStatus) {
+  const enrollment = getEnrollment(enrollmentId)
+
+  if (!enrollment) {
+    return undefined
+  }
+
+  enrollment.status = status
+  enrollment.updatedAt = new Date().toISOString()
+
+  return enrollment
+}
+
+export function createNotification(studentId: string, message: string) {
+  const notification: Notification = {
+    id: crypto.randomUUID(),
+    studentId,
+    message,
+    timestamp: new Date().toISOString(),
+    readStatus: 'unread',
+  }
+
+  notifications.push(notification)
+
+  return notification
 }
 
 export function buildEnrollmentView(enrollment: Enrollment) {

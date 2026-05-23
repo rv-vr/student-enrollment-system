@@ -1,8 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { authSession } from "$lib/stores/auth";
-  import { dropStudentCourse, getStudentCourses } from "$lib/api/client";
-  import type { StudentCoursesResponse } from "$lib/api/types";
+  import {
+    dropStudentCourse,
+    getStudentCourses,
+    getStudentNotifications,
+    type StudentCoursesResponse,
+    type StudentNotificationsResponse,
+  } from "$lib/api/client";
   import { derived, get, writable } from "svelte/store";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
@@ -10,7 +15,11 @@
   const session = derived(authSession, ($s) => $s);
 
   const studentCourses = writable<StudentCoursesResponse | null>(null);
+  const notifications = writable<StudentNotificationsResponse["notifications"]>(
+    [],
+  );
   const loading = writable(true);
+  const loadingNotifications = writable(true);
   const actionCourseCode = writable<string | null>(null);
   const alertMessage = writable("");
   const alertTone = writable<"error" | "success" | "">("");
@@ -38,6 +47,25 @@
     }
   }
 
+  async function refreshNotifications(studentId: string) {
+    loadingNotifications.set(true);
+
+    try {
+      const res = await getStudentNotifications(studentId);
+      notifications.set(res.notifications ?? []);
+    } catch (error) {
+      notifications.set([]);
+      showAlert(
+        error instanceof Error
+          ? error.message
+          : "Unable to load notifications.",
+        "error",
+      );
+    } finally {
+      loadingNotifications.set(false);
+    }
+  }
+
   async function handleDrop(courseCode: string) {
     const currentSession = get(session);
 
@@ -57,6 +85,7 @@
       );
       showAlert(response.message, "success");
       studentCourses.set(await getStudentCourses(currentSession.user.id));
+      await refreshNotifications(currentSession.user.id);
     } catch (error) {
       showAlert(
         error instanceof Error ? error.message : "Unable to drop the course.",
@@ -83,6 +112,7 @@
     }
 
     void refreshStudentCourses(currentSession.user.id);
+    void refreshNotifications(currentSession.user.id);
   });
 </script>
 
@@ -156,6 +186,21 @@
                   <td>
                     <div class="course-title">
                       {enrollment.course?.title ?? enrollment.courseCode}
+                    </div>
+                    <div class="mt-1">
+                      <span
+                        class="inline-flex rounded-full border px-2 py-0.5 text-[0.7rem] font-semibold uppercase tracking-wide"
+                        class:border-amber-300={enrollment.status === "pending"}
+                        class:bg-amber-100={enrollment.status === "pending"}
+                        class:text-amber-900={enrollment.status === "pending"}
+                        class:border-emerald-300={enrollment.status ===
+                          "approved"}
+                        class:bg-emerald-100={enrollment.status === "approved"}
+                        class:text-emerald-900={enrollment.status ===
+                          "approved"}
+                      >
+                        {enrollment.status}
+                      </span>
                     </div>
                     {#if enrollment.course?.prerequisiteCodes?.length}
                       <p class="meta">Prerequisite path completed</p>

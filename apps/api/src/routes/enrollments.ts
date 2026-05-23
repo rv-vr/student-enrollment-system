@@ -80,7 +80,7 @@ enrollmentsRoutes.post('/enroll', zValidator('json', enrollSchema, enrollmentVal
 
   return c.json(
     {
-      message: 'Enrollment created',
+      message: 'Enrollment request submitted',
       enrollment: buildEnrollmentView(enrollment),
       availability: {
         capacity: course.capacity,
