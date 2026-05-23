@@ -1,111 +1,138 @@
 <script lang="ts">
-  import { authSession } from "$lib/stores/auth";
-  import { enrollStudent, getCourses } from "$lib/api/client";
-  import type { CourseCatalogEntry } from "$lib/api/types";
   import { onMount } from "svelte";
+  import { authSession } from "$lib/stores/auth";
+  import { dropStudentCourse, getStudentCourses } from "$lib/api/client";
+  import type { StudentCoursesResponse } from "$lib/api/types";
+  import { derived, get, writable } from "svelte/store";
+  import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
 
-  let courses = $state<CourseCatalogEntry[]>([]);
-  let loading = $state(true);
-  let savingCourseCode = $state<string | null>(null);
-  let alertMessage = $state("");
-  let alertTone = $state<"error" | "success" | "">("");
-  let session = $derived($authSession);
+  const session = derived(authSession, ($s) => $s);
+
+  const studentCourses = writable<StudentCoursesResponse | null>(null);
+  const loading = writable(true);
+  const actionCourseCode = writable<string | null>(null);
+  const alertMessage = writable("");
+  const alertTone = writable<"error" | "success" | "">("");
 
   function showAlert(message: string, tone: "error" | "success") {
-    alertMessage = message;
-    alertTone = tone;
+    alertMessage.set(message);
+    alertTone.set(tone);
   }
 
-  async function refreshCourses() {
-    loading = true;
-    alertMessage = "";
-    alertTone = "";
+  async function refreshStudentCourses(studentId: string) {
+    loading.set(true);
+    alertMessage.set("");
+    alertTone.set("");
 
     try {
-      courses = await getCourses();
+      studentCourses.set(await getStudentCourses(studentId));
     } catch (error) {
+      studentCourses.set(null);
       showAlert(
-        error instanceof Error ? error.message : "Unable to load courses.",
+        error instanceof Error ? error.message : "Unable to load your courses.",
         "error",
       );
     } finally {
-      loading = false;
+      loading.set(false);
     }
   }
 
-  async function handleEnroll(courseCode: string) {
-    if (!session) {
-      showAlert("Sign in to enroll in a course.", "error");
+  async function handleDrop(courseCode: string) {
+    const currentSession = get(session);
+
+    if (!currentSession) {
+      showAlert("Sign in to manage your enrollments.", "error");
       return;
     }
 
-    savingCourseCode = courseCode;
-    alertMessage = "";
-    alertTone = "";
+    actionCourseCode.set(courseCode);
+    alertMessage.set("");
+    alertTone.set("");
 
     try {
-      const response = await enrollStudent(session.user.id, courseCode);
+      const response = await dropStudentCourse(
+        currentSession.user.id,
+        courseCode,
+      );
       showAlert(response.message, "success");
-      courses = await getCourses();
+      studentCourses.set(await getStudentCourses(currentSession.user.id));
     } catch (error) {
       showAlert(
-        error instanceof Error ? error.message : "Enrollment failed.",
+        error instanceof Error ? error.message : "Unable to drop the course.",
         "error",
       );
     } finally {
-      savingCourseCode = null;
+      actionCourseCode.set(null);
     }
   }
 
   onMount(() => {
-    void refreshCourses();
+    const currentSession = get(session);
+
+    if (!currentSession) {
+      void goto(resolve("/login"));
+      return;
+    }
+
+    if (currentSession.user.role !== "student") {
+      const target =
+        currentSession.user.role === "instructor" ? "/instructor" : "/admin";
+      void goto(resolve(target));
+      return;
+    }
+
+    void refreshStudentCourses(currentSession.user.id);
   });
 </script>
 
 <svelte:head>
-  <title>Course Catalog</title>
+  <title>My Courses</title>
 </svelte:head>
 
 <section class="page-grid">
   <div class="panel">
     <div class="panel-header">
       <div>
-        <p class="eyebrow">Course catalog</p>
-        <h2>Available courses</h2>
+        <p class="eyebrow">Student view</p>
+        <h2>My enrolled courses</h2>
         <p class="helper">
-          {#if session}
-            Logged in as <strong>{session.user.name}</strong> ({session.user
-              .role}). Use the buttons below to enroll in the mock courses.
+          {#if $session}
+            Current account: <strong>{$session.user.name}</strong> ({$session
+              .user.role})
           {:else}
-            Loading your authenticated session.
+            Loading authenticated account.
           {/if}
         </p>
       </div>
       <div class="meta">
-        {courses.length} course{courses.length === 1 ? "" : "s"} available
+        {$studentCourses?.enrollments.length ?? 0} active enrollment{($studentCourses
+          ?.enrollments.length ?? 0) === 1
+          ? ""
+          : "s"}
       </div>
     </div>
 
-    {#if alertMessage}
+    {#if $alertMessage}
       <div
         class="banner"
-        data-tone={alertTone}
+        data-tone={$alertTone}
         role="status"
         aria-live="polite"
       >
-        {alertMessage}
+        {$alertMessage}
       </div>
     {/if}
 
-    {#if loading}
+    {#if $loading}
       <div class="empty-state">
-        <h2>Loading course catalog</h2>
-        <p>Fetching the live catalog from the Hono API.</p>
+        <h2>Loading student courses</h2>
+        <p>Fetching the live enrollments for the selected student.</p>
       </div>
-    {:else if courses.length === 0}
+    {:else if !$studentCourses || $studentCourses.enrollments.length === 0}
       <div class="empty-state">
-        <h2>No courses available</h2>
-        <p>The API returned an empty catalog.</p>
+        <h2>No active enrollments</h2>
+        <p>This student is not enrolled in any courses yet.</p>
       </div>
     {:else}
       <div class="table-shell">
@@ -113,45 +140,50 @@
           <table>
             <thead>
               <tr>
-                <th scope="col">Course Code</th>
+                <th scope="col">Course</th>
                 <th scope="col">Title</th>
-                <th scope="col">Max Capacity</th>
-                <th scope="col">Available Seats</th>
-                <th scope="col">Status</th>
+                <th scope="col">Grade</th>
+                <th scope="col">Enrollment ID</th>
                 <th scope="col">Action</th>
               </tr>
             </thead>
             <tbody>
-              {#each courses as course (course.code)}
+              {#each $studentCourses.enrollments as enrollment (enrollment.id)}
                 <tr>
-                  <td class="course-code">{course.code}</td>
+                  <td class="course-code"
+                    >{enrollment.course?.code ?? enrollment.courseCode}</td
+                  >
                   <td>
-                    <div class="course-title">{course.title}</div>
-                    {#if course.prerequisiteCodes.length > 0}
-                      <p class="meta">
-                        Prerequisite: {course.prerequisiteCodes.join(", ")}
-                      </p>
+                    <div class="course-title">
+                      {enrollment.course?.title ?? enrollment.courseCode}
+                    </div>
+                    {#if enrollment.course?.prerequisiteCodes?.length}
+                      <p class="meta">Prerequisite path completed</p>
                     {/if}
                   </td>
-                  <td>{course.capacity}</td>
-                  <td>{course.remainingSeats}</td>
                   <td>
                     <span
                       class="pill"
-                      data-tone={course.remainingSeats > 0 ? "good" : "warn"}
+                      data-tone={enrollment.grade == null ? "warn" : "good"}
                     >
-                      {course.remainingSeats > 0 ? "Open" : "Full"}
+                      {enrollment.grade == null
+                        ? "No Grade Assigned"
+                        : String(enrollment.grade)}
                     </span>
+                  </td>
+                  <td>
+                    <span class="pill" data-tone="info">{enrollment.id}</span>
                   </td>
                   <td>
                     <button
                       type="button"
-                      onclick={() => handleEnroll(course.code)}
-                      disabled={savingCourseCode === course.code}
+                      class="danger-button"
+                      onclick={() => handleDrop(enrollment.courseCode)}
+                      disabled={$actionCourseCode === enrollment.courseCode}
                     >
-                      {savingCourseCode === course.code
-                        ? "Enrolling…"
-                        : "Enroll"}
+                      {$actionCourseCode === enrollment.courseCode
+                        ? "Dropping…"
+                        : "Drop Course"}
                     </button>
                   </td>
                 </tr>
