@@ -30,6 +30,38 @@ export const gradeSchema = z.object({
   grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
 })
 
+export const enrollmentStatusSchema = z.enum(['pending', 'approved', 'rejected'])
+
+export const enrollmentRecordSchema = z.object({
+  id: z.string().uuid(),
+  studentId: actorIdSchema(['A', 'I']),
+  courseCode: z.string().trim().min(1).transform((value) => value.toUpperCase()),
+  status: enrollmentStatusSchema,
+  section: z.string().trim().min(1),
+  instructorId: actorIdSchema(['R', 'F']).nullable(),
+  grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+
+export const notificationReadStatusSchema = z.enum(['unread', 'read'])
+
+export const notificationSchema = z.object({
+  id: z.string().uuid(),
+  studentId: actorIdSchema(['A', 'I']),
+  message: z.string().trim().min(1),
+  timestamp: z.string().datetime(),
+  readStatus: notificationReadStatusSchema,
+})
+
+export const adminDecisionSchema = z.object({
+  action: z.enum(['approve', 'deny']),
+})
+
+export const enrollmentIdParamSchema = z.object({
+  id: z.string().uuid(),
+})
+
 const humanActorIdSchema = actorIdSchema(['A', 'I', 'R', 'F'])
 
 export const loginSchema = z.object({
