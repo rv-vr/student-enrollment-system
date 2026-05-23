@@ -3,6 +3,7 @@ import { authRoutes } from './routes/auth'
 import { coursesRoutes } from './routes/courses'
 import { enrollmentsRoutes } from './routes/enrollments'
 import { studentsRoutes } from './routes/students'
+import { instructorRoutes } from './routes/instructor'
 
 const app = new Hono()
 
@@ -25,6 +26,7 @@ app.route('/auth', authRoutes)
 app.route('/courses', coursesRoutes)
 app.route('/students', studentsRoutes)
 app.route('/', enrollmentsRoutes)
+app.route('/instructor', instructorRoutes)
 
 export const routes = app
 export type AppType = typeof routes

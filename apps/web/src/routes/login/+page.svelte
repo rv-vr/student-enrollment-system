@@ -27,7 +27,17 @@
       setAuthSession({ token: response.token, user: response.user });
       alertMessage = "Signed in successfully.";
       alertTone = "success";
-      await goto(resolve("/"));
+
+      // Redirect based on role returned from the login response
+      const role = response.user?.role;
+      const target =
+        role === "admin"
+          ? "/admin"
+          : role === "instructor"
+            ? "/instructor"
+            : "/";
+
+      await goto(resolve(target));
     } catch (error) {
       const message =
         error instanceof ApiError && typeof error.payload.error === "string"

@@ -20,7 +20,15 @@
     if (!session && pathname !== "/login") {
       void goto(resolve("/login"));
     } else if (session && pathname === "/login") {
-      void goto(resolve("/"));
+      // Redirect authenticated users to their role-specific home
+      const role = session.user?.role;
+      const target =
+        role === "admin"
+          ? "/admin"
+          : role === "instructor"
+            ? "/instructor"
+            : "/";
+      void goto(resolve(target));
     }
   });
 
@@ -48,21 +56,57 @@
       </p>
     </div>
 
-    {#if session}
+    {#if session && session.user.role === "student"}
       <nav aria-label="Primary navigation" class="nav-links">
         <a
           href={resolve("/")}
           aria-current={page.url.pathname === "/" ? "page" : undefined}
-          >Courses</a
+          >My Courses</a
         >
         <a
-          href={resolve("/my-courses")}
-          aria-current={page.url.pathname.startsWith("/my-courses")
+          href={resolve("/courses")}
+          aria-current={page.url.pathname.startsWith("/courses")
             ? "page"
             : undefined}
         >
-          My Courses
+          Available Courses
         </a>
+      </nav>
+
+      <div class="session-readout" aria-label="Authenticated user">
+        <span>Logged in as</span>
+        <strong>{session.user.name} ({session.user.role})</strong>
+      </div>
+
+      <button type="button" class="logout-button" onclick={handleLogout}
+        >Log Out</button
+      >
+    {:else if session && session.user.role === "instructor"}
+      <nav aria-label="Instructor navigation" class="nav-links">
+        <a
+          href={resolve("/instructor")}
+          aria-current={page.url.pathname.startsWith("/instructor")
+            ? "page"
+            : undefined}>Instructor Dashboard</a
+        >
+      </nav>
+
+      <div class="session-readout" aria-label="Authenticated user">
+        <span>Logged in as</span>
+        <strong>{session.user.name} ({session.user.role})</strong>
+      </div>
+
+      <button type="button" class="logout-button" onclick={handleLogout}
+        >Log Out</button
+      >
+    {:else if session && session.user.role === "admin"}
+      <nav aria-label="Admin navigation" class="nav-links">
+        <a
+          href={resolve("/admin")}
+          aria-current={page.url.pathname.startsWith("/admin")
+            ? "page"
+            : undefined}>Admin Dashboard</a
+        >
       </nav>
 
       <div class="session-readout" aria-label="Authenticated user">

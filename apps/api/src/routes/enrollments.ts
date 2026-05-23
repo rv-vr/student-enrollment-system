@@ -129,6 +129,7 @@ enrollmentsRoutes.post('/drop', zValidator('json', dropSchema, enrollmentValidat
   })
 })
 
+// Patch grade by enrollmentId in body - keep backward compatibility
 enrollmentsRoutes.patch('/grade', zValidator('json', gradeSchema, enrollmentValidationHook), (c) => {
   const user = c.get('user')
   const { enrollmentId, grade } = c.req.valid('json')
@@ -143,6 +144,21 @@ enrollmentsRoutes.patch('/grade', zValidator('json', gradeSchema, enrollmentVali
     return c.json({ message: 'Enrollment not found' }, 404)
   }
 
+  // Ownership check: instructor must match enrollment.instructorId or course.assignedTeacherId
+  const course = getCourse(enrollment.courseCode)
+  const ownerId = enrollment.instructorId ?? course?.assignedTeacherId
+
+  if (user.role === 'instructor' && user.id !== ownerId) {
+    return c.json(
+      {
+        success: false,
+        error: 'Access Denied: You are not authorized to assign grades to this course section.',
+        field: 'auth',
+      },
+      403,
+    )
+  }
+
   const updatedEnrollment = updateEnrollmentGrade(enrollmentId, grade)
 
   if (!updatedEnrollment) {
@@ -154,8 +170,61 @@ enrollmentsRoutes.patch('/grade', zValidator('json', gradeSchema, enrollmentVali
       updatedEnrollment.grade === null
         ? 'Grade cleared'
         : isPassingGrade(updatedEnrollment.grade)
-          ? 'Passing grade recorded'
-          : 'Grade recorded',
+        ? 'Passing grade recorded'
+        : 'Grade recorded',
+    enrollment: buildEnrollmentView(updatedEnrollment),
+  })
+})
+
+// New route: PATCH /enrollments/:id/grade — grade by path param (secure + validate)
+import { z } from 'zod'
+
+const gradeOnlySchema = z.object({
+  grade: z.union([z.number().min(1).max(5), z.null()]),
+})
+
+enrollmentsRoutes.patch('/enrollments/:id/grade', zValidator('json', gradeOnlySchema, enrollmentValidationHook), (c) => {
+  const user = c.get('user')
+  const { id } = c.req.param()
+  const { grade } = c.req.valid('json') as { grade: number | null }
+
+  if (user.role === 'student') {
+    return c.json({ success: false, error: 'Forbidden', field: 'auth' }, 403)
+  }
+
+  const enrollment = getEnrollment(id)
+
+  if (!enrollment) {
+    return c.json({ message: 'Enrollment not found' }, 404)
+  }
+
+  const course = getCourse(enrollment.courseCode)
+  const ownerId = enrollment.instructorId ?? course?.assignedTeacherId
+
+  if (user.role === 'instructor' && user.id !== ownerId) {
+    return c.json(
+      {
+        success: false,
+        error: 'Access Denied: You are not authorized to assign grades to this course section.',
+        field: 'auth',
+      },
+      403,
+    )
+  }
+
+  const updatedEnrollment = updateEnrollmentGrade(id, grade)
+
+  if (!updatedEnrollment) {
+    return c.json({ message: 'Enrollment not found' }, 404)
+  }
+
+  return c.json({
+    message:
+      updatedEnrollment.grade === null
+        ? 'Grade cleared'
+        : isPassingGrade(updatedEnrollment.grade)
+        ? 'Passing grade recorded'
+        : 'Grade recorded',
     enrollment: buildEnrollmentView(updatedEnrollment),
   })
 })

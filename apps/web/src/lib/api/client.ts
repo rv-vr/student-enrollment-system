@@ -61,6 +61,10 @@ export async function getCourses() {
   return readJson<CourseCatalogEntry[]>(await client.courses.$get());
 }
 
+export async function getInstructorClasses() {
+  return readJson<unknown>(await client.instructor.classes.$get());
+}
+
 export async function getCourseAvailability(courseCode: string) {
   return readJson<CourseAvailability>(
     await client.courses[":code"].availability.$get({
@@ -97,9 +101,11 @@ export async function updateEnrollmentGrade(
   enrollmentId: string,
   grade: number | string,
 ) {
+  // Prefer path-based grade endpoint when available
   return readJson<MutationResponse>(
-    await client.grade.$patch({
-      json: { enrollmentId, grade },
+    await client["enrollments"][":id"].grade.$patch({
+      param: { id: String(enrollmentId) },
+      json: { grade: grade === "" ? null : Number(grade) },
     }),
   );
 }
