@@ -9,6 +9,7 @@ import type {
   MutationResponse,
   StudentCoursesResponse,
 } from "./types";
+import type { InferResponseType } from "hono/client";
 
 export class ApiError extends Error {
   constructor(
@@ -24,6 +25,10 @@ export class ApiError extends Error {
 const client = hc<AppType>("http://localhost:8787", {
   headers: () => getAuthHeaders(),
 });
+
+export type InstructorClassesResponse = InferResponseType<
+  typeof client.instructor.classes.$get
+>;
 
 async function readJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => null);
@@ -62,7 +67,9 @@ export async function getCourses() {
 }
 
 export async function getInstructorClasses() {
-  return readJson<unknown>(await client.instructor.classes.$get());
+  return readJson<InstructorClassesResponse>(
+    await client.instructor.classes.$get(),
+  );
 }
 
 export async function getCourseAvailability(courseCode: string) {

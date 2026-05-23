@@ -1,12 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { authSession } from "$lib/stores/auth";
-  import { getInstructorClasses, updateEnrollmentGrade } from "$lib/api/client";
+  import {
+    getInstructorClasses,
+    updateEnrollmentGrade,
+    type InstructorClassesResponse,
+  } from "$lib/api/client";
   import { writable, derived, get } from "svelte/store";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
 
-  const classes = writable<unknown[]>([]);
+  const classes = writable<InstructorClassesResponse["classes"]>([]);
   const loading = writable(true);
   const error = writable("");
 
