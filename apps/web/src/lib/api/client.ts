@@ -45,6 +45,21 @@ export type AdminRequestsResponse = InferResponseType<
   typeof client.admin.requests.$get
 >;
 
+export type AdminUsersResponse = InferResponseType<
+  typeof client.admin.users.$get
+>;
+
+export type AdminUser = AdminUsersResponse["users"][number];
+
+export type AdminUserCreatePayload = {
+  name: string;
+  password: string;
+  role: "student" | "instructor" | "admin";
+  college?: string;
+  program?: string;
+  campus?: string;
+};
+
 export type StudentNotificationsResponse = InferResponseType<
   typeof studentNotificationsGet
 >;
@@ -93,6 +108,18 @@ export async function getInstructorClasses() {
 
 export async function getAdminRequests() {
   return readJson<AdminRequestsResponse>(await client.admin.requests.$get());
+}
+
+export async function getAdminUsers() {
+  return readJson<AdminUsersResponse>(await client.admin.users.$get());
+}
+
+export async function createAdminUser(payload: AdminUserCreatePayload) {
+  return readJson<{ user: AdminUser }>(
+    await client.admin.users.$post({
+      json: payload,
+    }),
+  );
 }
 
 export async function decideAdminRequest(
