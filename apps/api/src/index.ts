@@ -32,6 +32,7 @@ app.get("/", (c) => {
       "/drop",
       "/grade",
       "/admin/users",
+      "/admin/courses",
       "/admin/requests",
       "/admin/requests/:id/decide",
     ],

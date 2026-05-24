@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export type UserRole = "student" | "instructor" | "admin";
@@ -31,10 +32,12 @@ export const courses = sqliteTable("courses", {
   capacity: integer("capacity").notNull(),
   labCredits: real("lab_credits").notNull(),
   lecCredits: real("lec_credits").notNull(),
-  instructorId: text("instructor_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  prerequisites: jsonText("prerequisites").notNull(),
+  instructorId: text("instructor_id").references(() => users.id, {
+    onDelete: "cascade",
+  }),
+  prerequisites: text("prerequisites", { mode: "json" })
+    .$type<string[]>()
+    .default(sql`'[]'`),
 });
 
 export const enrollments = sqliteTable("enrollments", {

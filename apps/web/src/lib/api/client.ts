@@ -60,6 +60,16 @@ export type AdminUserCreatePayload = {
   campus?: string;
 };
 
+export type AdminCourseCreatePayload = {
+  id: string;
+  title: string;
+  description?: string;
+  capacity: number;
+  labCredits: number;
+  lecCredits: number;
+  prerequisites?: string[];
+};
+
 export type StudentNotificationsResponse = InferResponseType<
   typeof studentNotificationsGet
 >;
@@ -117,6 +127,14 @@ export async function getAdminUsers() {
 export async function createAdminUser(payload: AdminUserCreatePayload) {
   return readJson<{ user: AdminUser }>(
     await client.admin.users.$post({
+      json: payload,
+    }),
+  );
+}
+
+export async function createAdminCourse(payload: AdminCourseCreatePayload) {
+  return readJson<{ course: CourseCatalogEntry }>(
+    await client.courses.$post({
       json: payload,
     }),
   );

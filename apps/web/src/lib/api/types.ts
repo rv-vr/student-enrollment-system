@@ -24,10 +24,17 @@ export type Student = {
 };
 
 export type Course = {
+  id: string;
   code: string;
   title: string;
+  description?: string | null;
   capacity: number;
+  labCredits: number;
+  lecCredits: number;
+  prerequisites: string[];
   prerequisiteCodes: string[];
+  instructorId?: string | null;
+  schedule?: string;
 };
 
 export type CourseCatalogEntry = Course & {

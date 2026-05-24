@@ -17,6 +17,30 @@ export const courseCodeParamSchema = z.object({
     .transform((value) => value.toUpperCase()),
 });
 
+export const courseCreateSchema = z.object({
+  id: z
+    .string()
+    .trim()
+    .min(1)
+    .regex(/^[A-Za-z0-9-]+$/)
+    .transform((value) => value.toUpperCase()),
+  title: z.string().trim().min(1),
+  description: z.string().trim().min(1).optional(),
+  capacity: z.number().int().nonnegative(),
+  labCredits: z.number().nonnegative(),
+  lecCredits: z.number().nonnegative(),
+  prerequisites: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1)
+        .transform((value) => value.toUpperCase()),
+    )
+    .optional()
+    .default([]),
+});
+
 export const enrollSchema = z.object({
   studentId: z.string().uuid(),
   courseCode: z
@@ -219,7 +243,7 @@ export const studentValidationHook = createValidationErrorHook({
 });
 
 export const courseValidationHook = createValidationErrorHook({
-  fieldAliases: { code: "courseCode" },
+  fieldAliases: { code: "courseCode", id: "courseCode" },
 });
 
 export const enrollmentValidationHook = createValidationErrorHook({

@@ -114,6 +114,12 @@
             ? "page"
             : undefined}>User Management</a
         >
+        <a
+          href={resolve("/admin/courses")}
+          aria-current={page.url.pathname.startsWith("/admin/courses")
+            ? "page"
+            : undefined}>Course Catalog</a
+        >
       </nav>
 
       <div class="session-readout" aria-label="Authenticated user">
