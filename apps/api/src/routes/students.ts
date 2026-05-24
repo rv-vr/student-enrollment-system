@@ -4,19 +4,21 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { courses, enrollments, notifications, users } from "../db/schema";
+import { courses, enrollments, notifications, sections, users } from "../db/schema";
 import { studentIdParamSchema, studentValidationHook } from "../validators";
 
 type CourseRow = typeof courses.$inferSelect;
 type EnrollmentRow = typeof enrollments.$inferSelect;
 type NotificationRow = typeof notifications.$inferSelect;
+type SectionRow = typeof sections.$inferSelect;
 type UserRow = typeof users.$inferSelect;
 
-function parseJsonArray(value: string | null | undefined) {
+function parseJsonArray(value: unknown) {
+  if (Array.isArray(value)) return value;
   if (!value) return [] as unknown[];
 
   try {
-    const parsed = JSON.parse(value);
+    const parsed = JSON.parse(String(value));
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [] as unknown[];
@@ -26,6 +28,7 @@ function parseJsonArray(value: string | null | undefined) {
 function buildEnrollmentViewRow(
   row: EnrollmentRow,
   courseRow?: CourseRow,
+  sectionRow?: SectionRow,
   studentRow?: UserRow,
 ) {
   return {
@@ -35,9 +38,10 @@ function buildEnrollmentViewRow(
     courseId: row.courseId,
     courseCode: row.courseId,
     status: row.status,
-    section: row.section,
-    instructorId: row.instructorId,
-    scheduleArray: parseJsonArray(row.scheduleArray),
+    sectionId: row.sectionId,
+    section: sectionRow?.sectionName ?? null,
+    instructorId: sectionRow?.instructorId ?? null,
+    scheduleArray: sectionRow?.scheduleArray ?? [],
     dateEnrolled: row.dateEnrolled,
     dateRequested: row.dateRequested,
     grade: row.grade,
@@ -90,7 +94,12 @@ studentsRoutes.get(
           .from(courses)
           .where(eq(courses.id, row.courseId))
           .get();
-        return buildEnrollmentViewRow(row, courseRow, student);
+        const sectionRow = await db
+          .select()
+          .from(sections)
+          .where(eq(sections.id, row.sectionId))
+          .get();
+        return buildEnrollmentViewRow(row, courseRow, sectionRow, student);
       }),
     );
 

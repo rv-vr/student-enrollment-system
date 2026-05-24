@@ -3,17 +3,19 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { courses, enrollments, users } from "../db/schema";
+import { courses, enrollments, sections, users } from "../db/schema";
 
 type CourseRow = typeof courses.$inferSelect;
 type EnrollmentRow = typeof enrollments.$inferSelect;
+type SectionRow = typeof sections.$inferSelect;
 type UserRow = typeof users.$inferSelect;
 
-function parseJsonArray(value: string | null | undefined) {
+function parseJsonArray(value: unknown) {
+  if (Array.isArray(value)) return value;
   if (!value) return [] as unknown[];
 
   try {
-    const parsed = JSON.parse(value);
+    const parsed = JSON.parse(String(value));
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [] as unknown[];
@@ -26,9 +28,10 @@ function buildRosterEntry(row: EnrollmentRow, studentRow?: UserRow) {
     userId: row.userId,
     studentId: row.userId,
     courseId: row.courseId,
+    sectionId: row.sectionId,
     status: row.status,
-    section: row.section,
-    scheduleArray: parseJsonArray(row.scheduleArray),
+    section: null,
+    scheduleArray: [],
     dateRequested: row.dateRequested,
     dateEnrolled: row.dateEnrolled,
     grade: row.grade,
@@ -58,18 +61,27 @@ instructorRoutes.get("/classes", async (c) => {
   }
 
   const db = drizzle(c.env.DB);
-  const assignedCourses = await db
+  const assignedSections = await db
     .select()
-    .from(courses)
-    .where(eq(courses.instructorId, user.id))
+    .from(sections)
+    .where(eq(sections.instructorId, user.id))
     .all();
 
   const payload = await Promise.all(
-    assignedCourses.map(async (course: CourseRow) => {
+    assignedSections.map(async (section: SectionRow) => {
+      const course = await db
+        .select()
+        .from(courses)
+        .where(eq(courses.id, section.courseId))
+        .get();
+      if (!course) {
+        return null;
+      }
+
       const rosterRows = await db
         .select()
         .from(enrollments)
-        .where(eq(enrollments.courseId, course.id))
+        .where(eq(enrollments.sectionId, section.id))
         .all();
 
       const roster = await Promise.all(
@@ -79,11 +91,14 @@ instructorRoutes.get("/classes", async (c) => {
             .from(users)
             .where(eq(users.id, row.userId))
             .get();
-          return buildRosterEntry(row, studentRow);
+            return buildRosterEntry(row, studentRow);
         }),
       );
 
       return {
+          section: {
+            ...section,
+          },
         course: {
           ...course,
           prerequisites: parseJsonArray(course.prerequisites),
@@ -93,5 +108,5 @@ instructorRoutes.get("/classes", async (c) => {
     }),
   );
 
-  return c.json({ classes: payload });
+    return c.json({ classes: payload.filter(Boolean) });
 });

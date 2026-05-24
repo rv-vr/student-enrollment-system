@@ -115,6 +115,12 @@
             : undefined}>User Management</a
         >
         <a
+          href={resolve("/admin/sections")}
+          aria-current={page.url.pathname.startsWith("/admin/sections")
+            ? "page"
+            : undefined}>Section Management</a
+        >
+        <a
           href={resolve("/admin/courses")}
           aria-current={page.url.pathname.startsWith("/admin/courses")
             ? "page"

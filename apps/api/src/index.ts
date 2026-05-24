@@ -4,6 +4,8 @@ import { authRoutes } from "./routes/auth";
 import { adminRoutes } from "./routes/admin";
 import { coursesRoutes } from "./routes/courses";
 import { enrollmentsRoutes } from "./routes/enrollments";
+import { sectionsRoutes } from "./routes/sections";
+import { usersRoutes } from "./routes/users";
 import { studentsRoutes } from "./routes/students";
 import { instructorRoutes } from "./routes/instructor";
 import { type AppBindings } from "./auth";
@@ -26,12 +28,15 @@ app.get("/", (c) => {
       "/auth/login",
       "/courses",
       "/courses/:code/availability",
+      "/users",
+      "/sections",
       "/students/:id/courses",
       "/students/:id/notifications",
       "/enroll",
       "/drop",
       "/grade",
       "/admin/users",
+      "/admin/sections",
       "/admin/courses",
       "/admin/requests",
       "/admin/requests/:id/decide",
@@ -41,6 +46,8 @@ app.get("/", (c) => {
 
 app.route("/auth", authRoutes);
 app.route("/courses", coursesRoutes);
+app.route("/users", usersRoutes);
+app.route("/sections", sectionsRoutes);
 app.route("/students", studentsRoutes);
 app.route("/", enrollmentsRoutes);
 app.route("/instructor", instructorRoutes);

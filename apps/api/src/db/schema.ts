@@ -9,6 +9,11 @@ export type EnrollmentStatus =
   | "pending"
   | "ongoing";
 export type NotificationType = "info" | "success" | "warning" | "alert";
+export type SectionScheduleEntry = {
+  day: string;
+  time: string;
+  type: string;
+};
 
 const jsonText = text;
 
@@ -40,6 +45,23 @@ export const courses = sqliteTable("courses", {
     .default(sql`'[]'`),
 });
 
+export const sections = sqliteTable("sections", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  courseId: text("course_id")
+    .notNull()
+    .references(() => courses.id, { onDelete: "cascade" }),
+  instructorId: text("instructor_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  sectionName: text("section_name").notNull(),
+  capacity: integer("capacity").notNull(),
+  scheduleArray: text("schedule_array", { mode: "json" })
+    .$type<SectionScheduleEntry[]>()
+    .default(sql`'[]'`),
+});
+
 export const enrollments = sqliteTable("enrollments", {
   id: text("id")
     .primaryKey()
@@ -48,14 +70,12 @@ export const enrollments = sqliteTable("enrollments", {
   courseId: text("course_id")
     .notNull()
     .references(() => courses.id, { onDelete: "cascade" }),
+  sectionId: text("section_id")
+    .notNull()
+    .references(() => sections.id, { onDelete: "cascade" }),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  instructorId: text("instructor_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  section: text("section").notNull(),
-  scheduleArray: jsonText("schedule_array").notNull(),
   dateEnrolled: text("date_enrolled"),
   dateRequested: text("date_requested").notNull(),
   grade: real("grade"),

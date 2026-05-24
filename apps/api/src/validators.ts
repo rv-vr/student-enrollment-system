@@ -41,6 +41,24 @@ export const courseCreateSchema = z.object({
     .default([]),
 });
 
+export const sectionScheduleItemSchema = z.object({
+  day: z.string().trim().min(1),
+  time: z.string().trim().min(1),
+  type: z.string().trim().min(1),
+});
+
+export const sectionCreateSchema = z.object({
+  courseCode: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((value) => value.toUpperCase()),
+  instructorId: z.string().uuid(),
+  sectionName: z.string().trim().min(1),
+  capacity: z.number().int().positive(),
+  scheduleArray: z.array(sectionScheduleItemSchema).default([]),
+});
+
 export const enrollSchema = z.object({
   studentId: z.string().uuid(),
   courseCode: z
@@ -81,8 +99,7 @@ export const enrollmentRecordSchema = z.object({
     .min(1)
     .transform((value) => value.toUpperCase()),
   status: enrollmentStatusSchema,
-  section: z.string().trim().min(1),
-  instructorId: z.string().uuid().nullable(),
+  sectionId: z.string().uuid(),
   grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -244,6 +261,14 @@ export const studentValidationHook = createValidationErrorHook({
 
 export const courseValidationHook = createValidationErrorHook({
   fieldAliases: { code: "courseCode", id: "courseCode" },
+});
+
+export const sectionValidationHook = createValidationErrorHook({
+  fieldAliases: {
+    courseCode: "courseCode",
+    instructorId: "instructorId",
+    sectionName: "sectionName",
+  },
 });
 
 export const enrollmentValidationHook = createValidationErrorHook({

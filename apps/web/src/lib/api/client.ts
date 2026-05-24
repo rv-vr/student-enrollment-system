@@ -7,6 +7,10 @@ import type {
   CourseCatalogEntry,
   LoginResponse,
   MutationResponse,
+  PublicUsersResponse,
+  SectionCatalogResponse,
+  SectionCatalogEntry,
+  SectionScheduleEntry,
   StudentCoursesResponse,
 } from "./types";
 import type { InferResponseType } from "hono/client";
@@ -70,6 +74,14 @@ export type AdminCourseCreatePayload = {
   prerequisites?: string[];
 };
 
+export type SectionCreatePayload = {
+  courseCode: string;
+  instructorId: string;
+  sectionName: string;
+  capacity: number;
+  scheduleArray: SectionScheduleEntry[];
+};
+
 export type StudentNotificationsResponse = InferResponseType<
   typeof studentNotificationsGet
 >;
@@ -124,6 +136,16 @@ export async function getAdminUsers() {
   return readJson<AdminUsersResponse>(await client.admin.users.$get());
 }
 
+export async function getUsers(role?: "student" | "instructor" | "admin") {
+  const query = role ? { role } : {};
+
+  return readJson<PublicUsersResponse>(
+    await client.users.$get({
+      query,
+    }),
+  );
+}
+
 export async function createAdminUser(payload: AdminUserCreatePayload) {
   return readJson<{ user: AdminUser }>(
     await client.admin.users.$post({
@@ -135,6 +157,18 @@ export async function createAdminUser(payload: AdminUserCreatePayload) {
 export async function createAdminCourse(payload: AdminCourseCreatePayload) {
   return readJson<{ course: CourseCatalogEntry }>(
     await client.courses.$post({
+      json: payload,
+    }),
+  );
+}
+
+export async function getSections() {
+  return readJson<SectionCatalogResponse>(await client.sections.$get());
+}
+
+export async function createSection(payload: SectionCreatePayload) {
+  return readJson<{ section: SectionCatalogEntry }>(
+    await client.sections.$post({
       json: payload,
     }),
   );

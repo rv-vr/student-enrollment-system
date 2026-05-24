@@ -23,6 +23,22 @@ export type Student = {
   name: string;
 };
 
+export type PublicUser = {
+  id: string;
+  username: string;
+  name: string;
+  role: AuthRole;
+  college?: string | null;
+  program?: string | null;
+  campus?: string | null;
+};
+
+export type SectionScheduleEntry = {
+  day: string;
+  time: string;
+  type: string;
+};
+
 export type Course = {
   id: string;
   code: string;
@@ -40,6 +56,28 @@ export type Course = {
 export type CourseCatalogEntry = Course & {
   enrolledCount: number;
   remainingSeats: number;
+};
+
+export type SectionCatalogEntry = {
+  id: string;
+  courseId: string;
+  courseCode: string;
+  courseTitle: string;
+  instructorId: string;
+  instructorName: string;
+  sectionName: string;
+  capacity: number;
+  scheduleArray: SectionScheduleEntry[];
+  enrolledCount: number;
+  remainingSeats: number;
+};
+
+export type SectionCatalogResponse = {
+  sections: SectionCatalogEntry[];
+};
+
+export type PublicUsersResponse = {
+  users: PublicUser[];
 };
 
 export type CourseAvailability = {
