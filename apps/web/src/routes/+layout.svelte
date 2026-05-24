@@ -103,8 +103,8 @@
       <nav aria-label="Admin navigation" class="nav-links">
         <a
           href={resolve("/admin")}
-          aria-current={page.url.pathname.startsWith("/admin")
-            && !page.url.pathname.startsWith("/admin/users")
+          aria-current={page.url.pathname.startsWith("/admin") &&
+          !page.url.pathname.startsWith("/admin/users")
             ? "page"
             : undefined}>Admin Dashboard</a
         >

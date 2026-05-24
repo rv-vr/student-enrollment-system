@@ -70,6 +70,18 @@ function getOpenSeatCount(rows: EnrollmentRow[]) {
   ).length;
 }
 
+function toPublicUserRow(row: UserRow): PublicUserRow {
+  return {
+    id: row.id,
+    username: row.username,
+    name: row.name,
+    role: row.role,
+    college: row.college,
+    program: row.program,
+    campus: row.campus,
+  };
+}
+
 const requireAdmin = createMiddleware<{
   Bindings: AppBindings;
   Variables: AppVariables;
@@ -95,7 +107,7 @@ adminRoutes.get("/users", async (c) => {
   const db = drizzle(c.env.DB);
   const rows = await db.select().from(users).all();
 
-  const payload: PublicUserRow[] = rows.map(({ passwordHash: _passwordHash, ...publicUser }) => publicUser);
+  const payload: PublicUserRow[] = rows.map((row) => toPublicUserRow(row));
 
   return c.json({ users: payload });
 });
@@ -104,9 +116,8 @@ adminRoutes.post(
   "/users",
   zValidator("json", adminCreateUserSchema),
   async (c) => {
-    const { name, password, role, college, program, campus } = c.req.valid(
-      "json",
-    );
+    const { name, password, role, college, program, campus } =
+      c.req.valid("json");
     const db = drizzle(c.env.DB);
 
     let username = "";
@@ -127,7 +138,11 @@ adminRoutes.post(
 
     if (existingUser) {
       return c.json(
-        { success: false, error: "Unable to generate a unique username.", field: "username" },
+        {
+          success: false,
+          error: "Unable to generate a unique username.",
+          field: "username",
+        },
         409,
       );
     }
@@ -162,9 +177,7 @@ adminRoutes.post(
       );
     }
 
-    const { passwordHash: _passwordHash, ...publicUser } = createdUser;
-
-    return c.json({ user: publicUser }, 201);
+    return c.json({ user: toPublicUserRow(createdUser) }, 201);
   },
 );
 

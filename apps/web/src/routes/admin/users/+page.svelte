@@ -61,7 +61,11 @@
         return "Unable to create the account right now. Try again later.";
       }
 
-      if (typeof error.payload === "object" && error.payload && "error" in error.payload) {
+      if (
+        typeof error.payload === "object" &&
+        error.payload &&
+        "error" in error.payload
+      ) {
         const message = (error.payload as { error?: unknown }).error;
 
         if (typeof message === "string" && message.trim()) {
@@ -211,7 +215,12 @@
   </header>
 
   {#if feedback}
-    <div class="feedback" data-tone={feedback.tone} role="alert" aria-live="assertive">
+    <div
+      class="feedback"
+      data-tone={feedback.tone}
+      role="alert"
+      aria-live="assertive"
+    >
       {feedback.message}
     </div>
   {/if}
@@ -229,7 +238,12 @@
       <form class="provision-form" onsubmit={handleSubmit}>
         <label>
           <span>Name</span>
-          <input bind:value={form.name} autocomplete="name" placeholder="Alex Rivera" required />
+          <input
+            bind:value={form.name}
+            autocomplete="name"
+            placeholder="Alex Rivera"
+            required
+          />
         </label>
 
         <label>
@@ -305,7 +319,10 @@
         </div>
         <label class="search-box">
           <span class="sr-only">Search provisioned users</span>
-          <input bind:value={searchQuery} placeholder="Search name, ID, role…" />
+          <input
+            bind:value={searchQuery}
+            placeholder="Search name, ID, role…"
+          />
         </label>
       </div>
 
@@ -335,7 +352,9 @@
                     <span class="username-pill">{user.username}</span>
                   </td>
                   <td>
-                    <span class="role-pill" data-role={user.role}>{user.role}</span>
+                    <span class="role-pill" data-role={user.role}
+                      >{user.role}</span
+                    >
                   </td>
                   <td>
                     <div class="profile-stack">
@@ -362,7 +381,9 @@
     </div>
 
     {#if recentCreatedUsers.length === 0}
-      <div class="empty-state">No accounts have been created during this session.</div>
+      <div class="empty-state">
+        No accounts have been created during this session.
+      </div>
     {:else}
       <div class="history-grid">
         {#each recentCreatedUsers as user (user.id)}
@@ -396,8 +417,11 @@
   .panel {
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 1.5rem;
-    background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(3, 7, 18, 0.92));
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.92),
+      rgba(3, 7, 18, 0.92)
+    );
     box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
     backdrop-filter: blur(16px);
   }
