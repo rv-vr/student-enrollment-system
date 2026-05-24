@@ -1,10 +1,14 @@
 import { zValidator } from "@hono/zod-validator";
+import { hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { createMiddleware } from "hono/factory";
 import { Hono } from "hono";
+import { z } from "zod";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
 import { courses, enrollments, notifications, users } from "../db/schema";
+import { generateAcademicUsername } from "../utils/idGenerator";
 import {
   adminDecisionSchema,
   enrollmentIdParamSchema,
@@ -14,6 +18,16 @@ import {
 type CourseRow = typeof courses.$inferSelect;
 type EnrollmentRow = typeof enrollments.$inferSelect;
 type UserRow = typeof users.$inferSelect;
+type PublicUserRow = Omit<UserRow, "passwordHash">;
+
+const adminCreateUserSchema = z.object({
+  name: z.string().trim().min(1),
+  password: z.string().min(1),
+  role: z.enum(["student", "instructor", "admin"]),
+  college: z.string().trim().min(1).optional(),
+  program: z.string().trim().min(1).optional(),
+  campus: z.string().trim().min(1).optional(),
+});
 
 function parseJsonArray(value: string | null | undefined) {
   if (!value) return [] as unknown[];
@@ -56,13 +70,22 @@ function getOpenSeatCount(rows: EnrollmentRow[]) {
   ).length;
 }
 
-export const adminRoutes = new Hono<{
+function toPublicUserRow(row: UserRow): PublicUserRow {
+  return {
+    id: row.id,
+    username: row.username,
+    name: row.name,
+    role: row.role,
+    college: row.college,
+    program: row.program,
+    campus: row.campus,
+  };
+}
+
+const requireAdmin = createMiddleware<{
   Bindings: AppBindings;
   Variables: AppVariables;
-}>();
-
-adminRoutes.use("*", requireAuth);
-adminRoutes.use("*", async (c, next) => {
+}>(async (c, next) => {
   const user = c.get("user");
 
   if (user.role !== "admin") {
@@ -71,6 +94,92 @@ adminRoutes.use("*", async (c, next) => {
 
   await next();
 });
+
+export const adminRoutes = new Hono<{
+  Bindings: AppBindings;
+  Variables: AppVariables;
+}>();
+
+adminRoutes.use("*", requireAuth);
+adminRoutes.use("*", requireAdmin);
+
+adminRoutes.get("/users", async (c) => {
+  const db = drizzle(c.env.DB);
+  const rows = await db.select().from(users).all();
+
+  const payload: PublicUserRow[] = rows.map((row) => toPublicUserRow(row));
+
+  return c.json({ users: payload });
+});
+
+adminRoutes.post(
+  "/users",
+  zValidator("json", adminCreateUserSchema),
+  async (c) => {
+    const { name, password, role, college, program, campus } =
+      c.req.valid("json");
+    const db = drizzle(c.env.DB);
+
+    let username = "";
+    let existingUser: UserRow | undefined;
+
+    for (let attempt = 0; attempt < 25; attempt++) {
+      username = generateAcademicUsername(role);
+      existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .get();
+
+      if (!existingUser) {
+        break;
+      }
+    }
+
+    if (existingUser) {
+      return c.json(
+        {
+          success: false,
+          error: "Unable to generate a unique username.",
+          field: "username",
+        },
+        409,
+      );
+    }
+
+    const id = crypto.randomUUID();
+    const passwordHash = await hash(password, 10);
+
+    await db
+      .insert(users)
+      .values({
+        id,
+        username,
+        passwordHash,
+        name,
+        role,
+        college: college ?? null,
+        program: program ?? null,
+        campus: campus ?? null,
+      })
+      .run();
+
+    const createdUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .get();
+
+    if (!createdUser) {
+      return c.json(
+        { success: false, error: "User creation failed.", field: "user" },
+        500,
+      );
+    }
+
+    return c.json({ user: toPublicUserRow(createdUser) }, 201);
+  },
+);
 
 adminRoutes.get("/requests", async (c) => {
   const db = drizzle(c.env.DB);
@@ -162,6 +271,11 @@ adminRoutes.patch(
       .from(enrollments)
       .where(eq(enrollments.id, id))
       .get();
+
+    if (!updated) {
+      return c.json({ message: "Enrollment request not found" }, 404);
+    }
+
     const courseRow = await db
       .select()
       .from(courses)

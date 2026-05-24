@@ -46,7 +46,9 @@ function createD1Mock() {
 describe("validators", () => {
   it("accepts UUID student IDs and rejects actor-style identifiers", () => {
     expect(
-      studentIdParamSchema.safeParse({ id: "61b1b5d5-5b4f-4b68-8f0d-6bf3f3cc3d81" }).success,
+      studentIdParamSchema.safeParse({
+        id: "61b1b5d5-5b4f-4b68-8f0d-6bf3f3cc3d81",
+      }).success,
     ).toBe(true);
 
     expect(studentIdParamSchema.safeParse({ id: "1234" }).success).toBe(false);
@@ -115,33 +117,37 @@ describe("validators", () => {
       const studentPasswordHash = hashSync("Patel", 10);
       const adminPasswordHash = hashSync("Chen", 10);
 
-      sqlite.prepare(
-        `INSERT INTO users (id, username, password_hash, name, role, college, program, campus)
+      sqlite
+        .prepare(
+          `INSERT INTO users (id, username, password_hash, name, role, college, program, campus)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(
-        "61b1b5d5-5b4f-4b68-8f0d-6bf3f3cc3d81",
-        "2026-1842-A",
-        studentPasswordHash,
-        "Student One",
-        "student",
-        "College of Computing",
-        "BS Computer Science",
-        "Main Campus",
-      );
+        )
+        .run(
+          "61b1b5d5-5b4f-4b68-8f0d-6bf3f3cc3d81",
+          "2026-1842-A",
+          studentPasswordHash,
+          "Student One",
+          "student",
+          "College of Computing",
+          "BS Computer Science",
+          "Main Campus",
+        );
 
-      sqlite.prepare(
-        `INSERT INTO users (id, username, password_hash, name, role, college, program, campus)
+      sqlite
+        .prepare(
+          `INSERT INTO users (id, username, password_hash, name, role, college, program, campus)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(
-        "8c6f0f9a-2d4a-4f7b-a7a7-2d2a8d5f06fb",
-        "2026-1338-R",
-        adminPasswordHash,
-        "Admin One",
-        "admin",
-        null,
-        null,
-        "Main Campus",
-      );
+        )
+        .run(
+          "8c6f0f9a-2d4a-4f7b-a7a7-2d2a8d5f06fb",
+          "2026-1338-R",
+          adminPasswordHash,
+          "Admin One",
+          "admin",
+          null,
+          null,
+          "Main Campus",
+        );
 
       await expect(
         authenticateActor(db as never, "2026-1842-A", "Patel"),
@@ -151,7 +157,9 @@ describe("validators", () => {
         authenticateActor(db as never, "2026-1338-R", "Chen"),
       ).resolves.toMatchObject({ role: "admin", name: "Admin One" });
 
-      await expect(authenticateActor(db as never, "2026-1842-A", "Wrong")).resolves.toBeUndefined();
+      await expect(
+        authenticateActor(db as never, "2026-1842-A", "Wrong"),
+      ).resolves.toBeUndefined();
     } finally {
       sqlite.close();
     }
