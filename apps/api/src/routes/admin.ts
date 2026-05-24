@@ -1,24 +1,60 @@
 import { zValidator } from "@hono/zod-validator";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-// migrated to use D1 via Drizzle
-import { drizzle } from "drizzle-orm/d1";
-import { enrollments, courses, users } from "../db/schema";
-import { eq, and } from "drizzle-orm";
-
-function buildEnrollmentViewRow(row: any, courseRow: any, studentRow: any) {
-  return {
-    ...row,
-    courseCode: courseRow?.code,
-    student: studentRow ? { id: studentRow.id, name: studentRow.name } : null,
-  };
-}
+import { courses, enrollments, notifications, users } from "../db/schema";
 import {
   adminDecisionSchema,
   enrollmentIdParamSchema,
   enrollmentValidationHook,
 } from "../validators";
+
+type CourseRow = typeof courses.$inferSelect;
+type EnrollmentRow = typeof enrollments.$inferSelect;
+type UserRow = typeof users.$inferSelect;
+
+function parseJsonArray(value: string | null | undefined) {
+  if (!value) return [] as unknown[];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [] as unknown[];
+  }
+}
+
+function buildEnrollmentViewRow(
+  row: EnrollmentRow,
+  courseRow?: CourseRow,
+  studentRow?: UserRow,
+) {
+  return {
+    ...row,
+    userId: row.userId,
+    studentId: row.userId,
+    courseId: row.courseId,
+    courseCode: row.courseId,
+    course: courseRow
+      ? { ...courseRow, prerequisites: parseJsonArray(courseRow.prerequisites) }
+      : null,
+    student: studentRow
+      ? {
+          id: studentRow.id,
+          username: studentRow.username,
+          name: studentRow.name,
+        }
+      : null,
+  };
+}
+
+function getOpenSeatCount(rows: EnrollmentRow[]) {
+  return rows.filter(
+    (row) => row.status === "ongoing" || row.status === "completed",
+  ).length;
+}
 
 export const adminRoutes = new Hono<{
   Bindings: AppBindings;
@@ -38,12 +74,24 @@ adminRoutes.use("*", async (c, next) => {
 
 adminRoutes.get("/requests", async (c) => {
   const db = drizzle(c.env.DB);
-  const pending = await db.select().from(enrollments).where(eq(enrollments.status, 'pending')).all();
+  const pending = await db
+    .select()
+    .from(enrollments)
+    .where(eq(enrollments.status, "pending"))
+    .all();
 
   const payload = await Promise.all(
-    pending.map(async (row) => {
-      const courseRow = await db.select().from(courses).where(eq(courses.id, row.courseId)).get();
-      const studentRow = await db.select().from(users).where(eq(users.id, row.studentId)).get();
+    pending.map(async (row: EnrollmentRow) => {
+      const courseRow = await db
+        .select()
+        .from(courses)
+        .where(eq(courses.id, row.courseId))
+        .get();
+      const studentRow = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, row.userId))
+        .get();
       return buildEnrollmentViewRow(row, courseRow, studentRow);
     }),
   );
@@ -55,41 +103,108 @@ adminRoutes.patch(
   "/requests/:id/decide",
   zValidator("param", enrollmentIdParamSchema, enrollmentValidationHook),
   zValidator("json", adminDecisionSchema, enrollmentValidationHook),
-  (c) => async () => {
+  async (c) => {
     const { id } = c.req.valid("param");
     const { action } = c.req.valid("json");
-
     const db = drizzle(c.env.DB);
-    const enrollmentRow = await db.select().from(enrollments).where(eq(enrollments.id, id)).get();
 
-    if (!enrollmentRow) return c.json({ message: "Enrollment request not found" }, 404);
+    const enrollmentRow = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.id, id))
+      .get();
+    if (!enrollmentRow)
+      return c.json({ message: "Enrollment request not found" }, 404);
 
-    if (enrollmentRow.status !== 'pending') return c.json({ message: "Enrollment request already decided" }, 409);
+    if (enrollmentRow.status !== "pending") {
+      return c.json({ message: "Enrollment request already decided" }, 409);
+    }
 
-    const nextStatus = action === "approve" ? "approved" : "rejected";
+    const nextStatus = action === "approve" ? "ongoing" : "dropped";
 
-    if (nextStatus === 'approved') {
-      const courseRow = await db.select().from(courses).where(eq(courses.id, enrollmentRow.courseId)).get();
+    if (nextStatus === "ongoing") {
+      const courseRow = await db
+        .select()
+        .from(courses)
+        .where(eq(courses.id, enrollmentRow.courseId))
+        .get();
       if (!courseRow) return c.json({ message: "Course not found" }, 404);
 
-      const approvedCount = await db.select().from(enrollments).where(and(eq(enrollments.courseId, courseRow.id), eq(enrollments.status, 'approved'))).all();
-      if ((courseRow.capacity ?? 0) - approvedCount.length <= 0) {
-        return c.json({ message: "Course is full. Request cannot be approved." }, 409);
+      const activeRows = await db
+        .select()
+        .from(enrollments)
+        .where(eq(enrollments.courseId, courseRow.id))
+        .all();
+      if (courseRow.capacity - getOpenSeatCount(activeRows) <= 0) {
+        return c.json(
+          { message: "Course is full. Request cannot be approved." },
+          409,
+        );
       }
     }
 
-    await db.update(enrollments).set({ status: nextStatus }).where(eq(enrollments.id, id)).run();
+    const decisionTime = new Date().toISOString();
+    const enrolledAt =
+      nextStatus === "ongoing" ? decisionTime : enrollmentRow.dateEnrolled;
 
-    const updated = await db.select().from(enrollments).where(eq(enrollments.id, id)).get();
+    await db
+      .update(enrollments)
+      .set({
+        status: nextStatus,
+        dateEnrolled: enrolledAt,
+        dateRequested: enrollmentRow.dateRequested,
+      })
+      .where(eq(enrollments.id, id))
+      .run();
 
-    const notificationMessage = nextStatus === 'approved' ? `Your enrollment in ${updated.courseId} was approved.` : `Your enrollment in ${updated.courseId} was denied.`;
+    const updated = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.id, id))
+      .get();
+    const courseRow = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, updated.courseId))
+      .get();
+    const studentRow = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, updated.userId))
+      .get();
 
-    // create notification: simple insert into a notifications table not present in schema; fallback to returning message only
+    const title =
+      nextStatus === "ongoing" ? "Enrollment approved" : "Enrollment denied";
+    const message =
+      nextStatus === "ongoing"
+        ? `Your enrollment in ${updated.courseId} was approved.`
+        : `Your enrollment in ${updated.courseId} was denied.`;
+
+    const notificationId = crypto.randomUUID();
+
+    await db
+      .insert(notifications)
+      .values({
+        id: notificationId,
+        userId: updated.userId,
+        title,
+        message,
+        type: nextStatus === "ongoing" ? "success" : "warning",
+        isRead: 0,
+        createdAt: decisionTime,
+      })
+      .run();
+
+    const notification = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.id, notificationId))
+      .get();
 
     return c.json({
       message: "Enrollment request decision recorded",
-      enrollment: buildEnrollmentViewRow(updated, null, null),
-      notification: { message: notificationMessage },
+      enrollment: buildEnrollmentViewRow(updated, courseRow, studentRow),
+      notification,
     });
   },
 );

@@ -5,11 +5,8 @@ import type { ZodIssue } from "zod";
 
 import { gradeScaleMax, gradeScaleMin } from "./store";
 
-const actorIdSchema = (suffixes: readonly ("A" | "I" | "R" | "F")[]) =>
-  z.string().regex(new RegExp(`^2026-\\d{4}-(?:${suffixes.join("|")})$`));
-
 export const studentIdParamSchema = z.object({
-  id: actorIdSchema(["A", "I"]),
+  id: z.string().uuid(),
 });
 
 export const courseCodeParamSchema = z.object({
@@ -21,7 +18,7 @@ export const courseCodeParamSchema = z.object({
 });
 
 export const enrollSchema = z.object({
-  studentId: actorIdSchema(["A", "I"]),
+  studentId: z.string().uuid(),
   courseCode: z
     .string()
     .trim()
@@ -30,7 +27,7 @@ export const enrollSchema = z.object({
 });
 
 export const dropSchema = z.object({
-  studentId: actorIdSchema(["A", "I"]),
+  studentId: z.string().uuid(),
   courseCode: z
     .string()
     .trim()
@@ -44,14 +41,16 @@ export const gradeSchema = z.object({
 });
 
 export const enrollmentStatusSchema = z.enum([
+  "completed",
+  "inc",
+  "dropped",
   "pending",
-  "approved",
-  "rejected",
+  "ongoing",
 ]);
 
 export const enrollmentRecordSchema = z.object({
   id: z.string().uuid(),
-  studentId: actorIdSchema(["A", "I"]),
+  userId: z.string().uuid(),
   courseCode: z
     .string()
     .trim()
@@ -59,7 +58,7 @@ export const enrollmentRecordSchema = z.object({
     .transform((value) => value.toUpperCase()),
   status: enrollmentStatusSchema,
   section: z.string().trim().min(1),
-  instructorId: actorIdSchema(["R", "F"]).nullable(),
+  instructorId: z.string().uuid().nullable(),
   grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -69,7 +68,7 @@ export const notificationReadStatusSchema = z.enum(["unread", "read"]);
 
 export const notificationSchema = z.object({
   id: z.string().uuid(),
-  studentId: actorIdSchema(["A", "I"]),
+  userId: z.string().uuid(),
   message: z.string().trim().min(1),
   timestamp: z.string().datetime(),
   readStatus: notificationReadStatusSchema,
@@ -83,10 +82,11 @@ export const enrollmentIdParamSchema = z.object({
   id: z.string().uuid(),
 });
 
-const humanActorIdSchema = actorIdSchema(["A", "I", "R", "F"]);
-
 export const loginSchema = z.object({
-  username: humanActorIdSchema,
+  username: z
+    .string()
+    .trim()
+    .regex(/^2026-\d{4}-(?:A|I|H|F|R)$/),
   password: z.string().trim().min(1),
 });
 
@@ -180,7 +180,7 @@ export function createValidationErrorHook(options: ValidationHookOptions = {}) {
     }
 
     const issue = result.error.issues[0];
-    const statusCode = (options.statusCode ?? 400) as number;
+    const statusCode = (options.statusCode ?? 400) as ContentfulStatusCode;
 
     if (!issue) {
       return c.json(
@@ -189,7 +189,7 @@ export function createValidationErrorHook(options: ValidationHookOptions = {}) {
           error: options.errorMessage ?? "Invalid input.",
           field: options.fieldName ?? "input",
         },
-        statusCode as unknown as ContentfulStatusCode,
+        statusCode,
       );
     }
 
@@ -204,20 +204,18 @@ export function createValidationErrorHook(options: ValidationHookOptions = {}) {
           options.errorMessage ?? formatValidationError(field, issue, options),
         field,
       },
-      statusCode as unknown as ContentfulStatusCode,
+      statusCode,
     );
   };
 }
 
-const studentTokenMessage =
-  "Invalid student ID format. Expected 2026-XXXX-A or 2026-XXXX-I.";
 const enrollmentTokenMessage = "Invalid enrollment ID format. Expected a UUID.";
 const loginFailureMessage =
-  "Invalid credentials provided. Please check your ID and password.";
+  "Invalid credentials provided. Please check your username and password.";
 
 export const studentValidationHook = createValidationErrorHook({
   fieldAliases: { id: "studentId" },
-  tokenFieldMessages: { studentId: studentTokenMessage },
+  tokenFieldMessages: { studentId: "Invalid student ID. Expected a UUID." },
 });
 
 export const courseValidationHook = createValidationErrorHook({
@@ -226,7 +224,7 @@ export const courseValidationHook = createValidationErrorHook({
 
 export const enrollmentValidationHook = createValidationErrorHook({
   tokenFieldMessages: {
-    studentId: studentTokenMessage,
+    studentId: "Invalid student ID. Expected a UUID.",
     enrollmentId: enrollmentTokenMessage,
   },
 });

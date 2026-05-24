@@ -8,19 +8,25 @@
     "build": "vite build",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:seed": "tsx src/db/seed.ts",
     "preview": "$npm_execpath run build && vite preview",
     "deploy": "$npm_execpath run build && wrangler deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.8.0",
+    "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.19",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.2.3",
+    "@types/bcryptjs": "^2.4.6",
+    "better-sqlite3": "^12.10.0",
     "drizzle-kit": "^0.31.10",
+    "tsx": "^4.22.3",
     "vite": "^6.3.5",
     "vite-ssr-components": "^0.6.1",
     "vitest": "^3.2.4",

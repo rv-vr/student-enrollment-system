@@ -24,6 +24,10 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "db:generate": {
+      "cache": false,
+      "outputs": ["apps/api/drizzle/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

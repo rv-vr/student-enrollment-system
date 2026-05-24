@@ -7,6 +7,7 @@
   let session = $derived($authSession);
   let username = $state("");
   let password = $state("");
+  let showPassword = $state(false);
   let submitting = $state(false);
   let alertMessage = $state("");
   let alertTone = $state<"error" | "success" | "">("");
@@ -92,14 +93,25 @@
 
       <label>
         <span>Password</span>
-        <input
-          autocomplete="current-password"
-          bind:value={password}
-          name="password"
-          type="password"
-          placeholder="Patel"
-          required
-        />
+        <div class="password-field">
+          <input
+            autocomplete="current-password"
+            bind:value={password}
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Patel"
+            required
+          />
+          <button
+            class="password-toggle"
+            type="button"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            onclick={() => (showPassword = !showPassword)}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
       </label>
 
       <div class="login-actions">

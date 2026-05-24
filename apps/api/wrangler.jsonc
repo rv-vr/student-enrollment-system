@@ -2,12 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "uniaces",
   "compatibility_date": "2025-08-03",
+  "compatibility_flags": ["nodejs_compat"],
   "main": "./src/index.ts",
   "d1_databases": [
     {
-      "binding": "uniaces_db",
+      "binding": "DB",
       "database_name": "uniaces-db",
-      "database_id": "ae9ccb04-3f2d-4710-86cd-fbd739eeeebb"
-    }
-  ]
+      "database_id": "ae9ccb04-3f2d-4710-86cd-fbd739eeeebb",
+    },
+  ],
 }

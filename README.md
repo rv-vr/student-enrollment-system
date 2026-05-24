@@ -6,13 +6,12 @@ UniACES (University Academic Course Enrollment System) is a high-performance, ty
 
 This repository is organized as a Turborepo monorepo with the following production surfaces:
 
-| Layer | Implementation | Notes |
-| --- | --- | --- |
-| Monorepo management | Turborepo | Root pipeline defined in `turbo.json` |
-| Backend API engine | Hono | RPC-enabled API mounted from `apps/api/src/index.ts` and deployed as a Cloudflare Worker |
-| Frontend app | SvelteKit / Svelte 5 | Client-side SPA behavior with route guards, layout shells, and utility-style component classes; deployed through Cloudflare Pages |
-| Type contract | Hono `AppType` + Zod + `InferResponseType` | End-to-end typing flows from backend routes into the frontend RPC client |
-
+| Layer               | Implementation                             | Notes                                                                                                                             |
+| ------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Monorepo management | Turborepo                                  | Root pipeline defined in `turbo.json`                                                                                             |
+| Backend API engine  | Hono                                       | RPC-enabled API mounted from `apps/api/src/index.ts` and deployed as a Cloudflare Worker                                          |
+| Frontend app        | SvelteKit / Svelte 5                       | Client-side SPA behavior with route guards, layout shells, and utility-style component classes; deployed through Cloudflare Pages |
+| Type contract       | Hono `AppType` + Zod + `InferResponseType` | End-to-end typing flows from backend routes into the frontend RPC client                                                          |
 
 ### API routing map
 
@@ -36,11 +35,11 @@ The API entrypoint in `apps/api/src/index.ts` mounts the current route surface:
 
 The Svelte frontend currently includes these routes:
 
-- `/login` 
-- `/` 
-- `/courses` 
-- `/instructor` 
-- `/admin` 
+- `/login`
+- `/`
+- `/courses`
+- `/instructor`
+- `/admin`
 
 Shared client-side support lives in:
 
@@ -53,12 +52,11 @@ Shared client-side support lives in:
 
 The repository currently uses the following exact environment variables and files.
 
-
-| Scope | File | Variables | Purpose |
-| --- | --- | --- | --- |
-| Root workspace env | `.env` | `PUBLIC_LOCAL_API`, `PUBLIC_PROD_API`, `JWT_SECRET` | Turbo watches this file and the web build consumes the public API URLs |
-| API local secret vault | `apps/api/.dev.vars` | `JWT_SECRET` | Wrangler local secret file for the Cloudflare Worker during development |
-| API production secrets | Cloudflare Workers Dashboard / `wrangler secret put` | `JWT_SECRET` | Secure production secret used by `c.env.JWT_SECRET` |
+| Scope                  | File                                                 | Variables                                           | Purpose                                                                 |
+| ---------------------- | ---------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------- |
+| Root workspace env     | `.env`                                               | `PUBLIC_LOCAL_API`, `PUBLIC_PROD_API`, `JWT_SECRET` | Turbo watches this file and the web build consumes the public API URLs  |
+| API local secret vault | `apps/api/.dev.vars`                                 | `JWT_SECRET`                                        | Wrangler local secret file for the Cloudflare Worker during development |
+| API production secrets | Cloudflare Workers Dashboard / `wrangler secret put` | `JWT_SECRET`                                        | Secure production secret used by `c.env.JWT_SECRET`                     |
 
 Example root `.env`:
 

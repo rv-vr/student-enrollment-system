@@ -8,6 +8,13 @@
       "when": 1779601233774,
       "tag": "0000_easy_yellowjacket",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1779611876117,
+      "tag": "0001_rare_puppet_master",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,9 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "seed:api": "npm --workspace api run db:seed",
+    "generate:api": "npm --workspace api run db:generate",
+    "migrate:api": "npx wrangler d1 execute uniaces-db --local --file=\"$npm_config_file\"",
     "format": "prettier --write \"**/*.{ts,tsx,md,jsonc}\"",
     "check-types": "turbo run check-types"
   },

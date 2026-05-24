@@ -1,24 +1,56 @@
 import { zValidator } from "@hono/zod-validator";
-import { Hono } from "hono";
-import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { studentIdParamSchema, studentValidationHook } from "../validators";
-import { drizzle } from "drizzle-orm/d1";
-import { users, enrollments, courses } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { Hono } from "hono";
 
-function buildEnrollmentViewRow(row: any, courseRow: any, studentRow: any) {
+import { requireAuth, type AppBindings, type AppVariables } from "../auth";
+import { courses, enrollments, notifications, users } from "../db/schema";
+import { studentIdParamSchema, studentValidationHook } from "../validators";
+
+type CourseRow = typeof courses.$inferSelect;
+type EnrollmentRow = typeof enrollments.$inferSelect;
+type NotificationRow = typeof notifications.$inferSelect;
+type UserRow = typeof users.$inferSelect;
+
+function parseJsonArray(value: string | null | undefined) {
+  if (!value) return [] as unknown[];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [] as unknown[];
+  }
+}
+
+function buildEnrollmentViewRow(
+  row: EnrollmentRow,
+  courseRow?: CourseRow,
+  studentRow?: UserRow,
+) {
   return {
     id: row.id,
-    studentId: row.student_id,
-    courseCode: courseRow?.code ?? null,
+    userId: row.userId,
+    studentId: row.userId,
+    courseId: row.courseId,
+    courseCode: row.courseId,
     status: row.status,
+    section: row.section,
+    instructorId: row.instructorId,
+    scheduleArray: parseJsonArray(row.scheduleArray),
+    dateEnrolled: row.dateEnrolled,
+    dateRequested: row.dateRequested,
     grade: row.grade,
-    student: studentRow ? { id: studentRow.id, name: studentRow.name } : null,
-    course: courseRow
+    remark: row.remark,
+    student: studentRow
       ? {
-          ...courseRow,
-          prerequisiteCodes: courseRow.prerequisiteCodes ?? [],
+          id: studentRow.id,
+          username: studentRow.username,
+          name: studentRow.name,
         }
+      : null,
+    course: courseRow
+      ? { ...courseRow, prerequisites: parseJsonArray(courseRow.prerequisites) }
       : null,
   };
 }
@@ -45,19 +77,28 @@ studentsRoutes.get(
     const student = await db.select().from(users).where(eq(users.id, id)).get();
     if (!student) return c.json({ message: "Student not found" }, 404);
 
-    const enrollRows = await db.select().from(enrollments).where(eq(enrollments.student_id, id)).all();
+    const enrollRows = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.userId, id))
+      .all();
 
     const enrollmentsView = await Promise.all(
       enrollRows.map(async (row) => {
-        const courseRow = await db.select().from(courses).where(eq(courses.id, row.course_id)).get();
+        const courseRow = await db
+          .select()
+          .from(courses)
+          .where(eq(courses.id, row.courseId))
+          .get();
         return buildEnrollmentViewRow(row, courseRow, student);
       }),
     );
 
-    // completed courses: those with approved status and passing grade
-    const completed = enrollRows.filter((r) => r.status === 'approved' && r.grade !== null && r.grade <= 3.0).map((r) => r.course_id);
+    const completedCourses = enrollRows
+      .filter((row) => row.status === "completed")
+      .map((row) => row.courseId);
 
-    return c.json({ student, completedCourses: completed, enrollments: enrollmentsView });
+    return c.json({ student, completedCourses, enrollments: enrollmentsView });
   },
 );
 
@@ -76,7 +117,18 @@ studentsRoutes.get(
     const student = await db.select().from(users).where(eq(users.id, id)).get();
     if (!student) return c.json({ message: "Student not found" }, 404);
 
-    // notifications table not present in schema; return empty list for now
-    return c.json({ student, notifications: [] });
+    const notificationRows = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, id))
+      .all();
+
+    return c.json({
+      student,
+      notifications: notificationRows.map((row: NotificationRow) => ({
+        ...row,
+        isRead: Boolean(row.isRead),
+      })),
+    });
   },
 );
