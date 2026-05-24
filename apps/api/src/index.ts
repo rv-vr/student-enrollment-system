@@ -21,7 +21,7 @@ app.use(
 
 app.get("/", (c) => {
   return c.json({
-    name: "Course Enrollment System API",
+    name: "UniACES API",
     routes: [
       "/auth/login",
       "/courses",

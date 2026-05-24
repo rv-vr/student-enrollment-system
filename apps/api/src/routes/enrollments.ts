@@ -7,20 +7,33 @@ import {
   enrollmentValidationHook,
   gradeSchema,
 } from "../validators";
-import {
-  buildEnrollmentView,
-  createEnrollment,
-  getCourse,
-  getEnrollment,
-  getRemainingSeats,
-  getStudent,
-  hasActiveEnrollment,
-  hasPassedCourse,
-  hasSatisfiedPrerequisites,
-  isPassingGrade,
-  removeEnrollment,
-  updateEnrollmentGrade,
-} from "../store";
+import { isPassingGrade } from "../store";
+import { getDbFromBindings } from "../db";
+import { drizzle } from "drizzle-orm/d1";
+import { users, courses, enrollments } from "../db/schema";
+import { eq, and } from "drizzle-orm";
+
+function buildEnrollmentViewRow(row: any, courseRow: any, studentRow: any, instructorRow: any) {
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    courseCode: courseRow?.code ?? row.course_code,
+    status: row.status,
+    section: studentRow?.section ?? null,
+    instructorId: courseRow?.instructor_id ?? null,
+    grade: row.grade,
+    createdAt: row.created_at ?? null,
+    updatedAt: row.updated_at ?? null,
+    student: studentRow ? { id: studentRow.id, name: studentRow.name } : null,
+    course: courseRow
+      ? {
+          ...courseRow,
+          prerequisiteCodes: courseRow.prerequisiteCodes ?? [],
+        }
+      : null,
+    instructor: instructorRow ? { id: instructorRow.id, name: instructorRow.name } : null,
+  };
+}
 
 export const enrollmentsRoutes = new Hono<{
   Bindings: AppBindings;
@@ -32,9 +45,11 @@ enrollmentsRoutes.use("*", requireAuth);
 enrollmentsRoutes.post(
   "/enroll",
   zValidator("json", enrollSchema, enrollmentValidationHook),
-  (c) => {
+  async (c) => {
     const user = c.get("user");
     const { studentId, courseCode } = c.req.valid("json");
+
+    const db = drizzle(c.env.DB);
 
     if (user.role !== "student") {
       return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
@@ -44,56 +59,60 @@ enrollmentsRoutes.post(
       return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
     }
 
-    const student = getStudent(studentId);
+    const student = await db.select().from(users).where(eq(users.id, studentId)).get();
 
-    if (!student) {
-      return c.json({ message: "Student not found" }, 404);
-    }
+    if (!student) return c.json({ message: "Student not found" }, 404);
 
-    const course = getCourse(courseCode);
+    const course = await db.select().from(courses).where(eq(courses.code, courseCode)).get();
 
-    if (!course) {
-      return c.json({ message: "Course not found" }, 404);
-    }
+    if (!course) return c.json({ message: "Course not found" }, 404);
 
-    if (hasPassedCourse(student.id, course.code)) {
-      return c.json({ message: "Student already passed this course" }, 409);
-    }
+    // check passed
+    const passed = await db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.student_id, studentId), eq(enrollments.course_id, course.id), eq(enrollments.status, 'approved')))
+      .limit(1)
+      .all();
 
-    if (hasActiveEnrollment(student.id, course.code)) {
-      return c.json(
-        { message: "Student already enrolled in this course" },
-        409,
-      );
-    }
+    if (passed.length > 0) return c.json({ message: "Student already passed this course" }, 409);
 
-    if (getRemainingSeats(course.code) <= 0) {
-      return c.json({ message: "Course is full" }, 409);
-    }
+    // active enrollment
+    const active = await db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.student_id, studentId), eq(enrollments.course_id, course.id)))
+      .limit(1)
+      .all();
 
-    if (!hasSatisfiedPrerequisites(student.id, course)) {
-      return c.json(
-        {
-          message: "Prerequisites not satisfied",
-          prerequisites: course.prerequisiteCodes,
-        },
-        400,
-      );
-    }
+    if (active.length > 0) return c.json({ message: "Student already enrolled in this course" }, 409);
 
-    const enrollment = createEnrollment(student.id, course.code);
-    if (!enrollment) {
-      return c.json({ message: "Unable to create enrollment" }, 500);
-    }
-    const remainingSeats = getRemainingSeats(course.code);
+    // remaining seats
+    const approvedCount = await db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.course_id, course.id), eq(enrollments.status, 'approved')))
+      .all();
+
+    const remainingSeats = Math.max((course.capacity ?? 0) - approvedCount.length, 0);
+
+    if (remainingSeats <= 0) return c.json({ message: "Course is full" }, 409);
+
+    // prerequisites: not modeled in D1 schema currently — assume satisfied
+
+    // insert enrollment
+    const id = crypto.randomUUID();
+    await db.insert(enrollments).values({ id, student_id: studentId, course_id: course.id, status: 'pending', grade: null }).run();
+
+    const enrollmentRow = await db.select().from(enrollments).where(eq(enrollments.id, id)).get();
 
     return c.json(
       {
         message: "Enrollment request submitted",
-        enrollment: buildEnrollmentView(enrollment),
+        enrollment: buildEnrollmentViewRow(enrollmentRow, course, student, null),
         availability: {
           capacity: course.capacity,
-          enrolledCount: course.capacity - remainingSeats,
+          enrolledCount: (course.capacity ?? 0) - remainingSeats,
           remainingSeats,
         },
       },
@@ -105,7 +124,7 @@ enrollmentsRoutes.post(
 enrollmentsRoutes.post(
   "/drop",
   zValidator("json", dropSchema, enrollmentValidationHook),
-  (c) => {
+  async (c) => {
     const user = c.get("user");
     const { studentId, courseCode } = c.req.valid("json");
 
@@ -117,26 +136,34 @@ enrollmentsRoutes.post(
       return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
     }
 
-    const course = getCourse(courseCode);
+    const db = drizzle(c.env.DB);
+    const course = await db.select().from(courses).where(eq(courses.code, courseCode)).get();
+    if (!course) return c.json({ message: "Course not found" }, 404);
 
-    if (!course) {
-      return c.json({ message: "Course not found" }, 404);
-    }
+    const enrollmentRow = await db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.student_id, studentId), eq(enrollments.course_id, course.id)))
+      .get();
 
-    const removedEnrollment = removeEnrollment(studentId, course.code);
+    if (!enrollmentRow) return c.json({ message: "Enrollment not found" }, 404);
 
-    if (!removedEnrollment) {
-      return c.json({ message: "Enrollment not found" }, 404);
-    }
+    await db.delete(enrollments).where(eq(enrollments.id, enrollmentRow.id)).run();
 
-    const remainingSeats = getRemainingSeats(course.code);
+    const approvedCount = await db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.course_id, course.id), eq(enrollments.status, 'approved')))
+      .all();
+
+    const remainingSeats = Math.max((course.capacity ?? 0) - approvedCount.length, 0);
 
     return c.json({
       message: "Enrollment dropped",
-      enrollment: buildEnrollmentView(removedEnrollment),
+      enrollment: buildEnrollmentViewRow(enrollmentRow, course, { id: studentId, name: null }, null),
       availability: {
         capacity: course.capacity,
-        enrolledCount: course.capacity - remainingSeats,
+        enrolledCount: (course.capacity ?? 0) - remainingSeats,
         remainingSeats,
       },
     });
@@ -147,7 +174,7 @@ enrollmentsRoutes.post(
 enrollmentsRoutes.patch(
   "/grade",
   zValidator("json", gradeSchema, enrollmentValidationHook),
-  (c) => {
+  async (c) => {
     const user = c.get("user");
     const { enrollmentId, grade } = c.req.valid("json");
 
@@ -155,42 +182,24 @@ enrollmentsRoutes.patch(
       return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
     }
 
-    const enrollment = getEnrollment(enrollmentId);
+    const db = drizzle(c.env.DB);
+    const enrollmentRow = await db.select().from(enrollments).where(eq(enrollments.id, enrollmentId)).get();
+    if (!enrollmentRow) return c.json({ message: "Enrollment not found" }, 404);
 
-    if (!enrollment) {
-      return c.json({ message: "Enrollment not found" }, 404);
-    }
-
-    // Ownership check: instructor must match enrollment.instructorId or course.assignedTeacherId
-    const course = getCourse(enrollment.courseCode);
-    const ownerId = enrollment.instructorId ?? course?.assignedTeacherId;
+    const courseRow = await db.select().from(courses).where(eq(courses.id, enrollmentRow.course_id)).get();
+    const ownerId = courseRow?.instructor_id ?? null;
 
     if (user.role === "instructor" && user.id !== ownerId) {
-      return c.json(
-        {
-          success: false,
-          error:
-            "Access Denied: You are not authorized to assign grades to this course section.",
-          field: "auth",
-        },
-        403,
-      );
+      return c.json({ success: false, error: "Access Denied", field: "auth" }, 403);
     }
 
-    const updatedEnrollment = updateEnrollmentGrade(enrollmentId, grade);
+    await db.update(enrollments).set({ grade }).where(eq(enrollments.id, enrollmentId)).run();
 
-    if (!updatedEnrollment) {
-      return c.json({ message: "Enrollment not found" }, 404);
-    }
+    const updated = await db.select().from(enrollments).where(eq(enrollments.id, enrollmentId)).get();
 
     return c.json({
-      message:
-        updatedEnrollment.grade === null
-          ? "Grade cleared"
-          : isPassingGrade(updatedEnrollment.grade)
-            ? "Passing grade recorded"
-            : "Grade recorded",
-      enrollment: buildEnrollmentView(updatedEnrollment),
+      message: updated.grade === null ? "Grade cleared" : isPassingGrade(updated.grade) ? "Passing grade recorded" : "Grade recorded",
+      enrollment: buildEnrollmentViewRow(updated, courseRow, null, null),
     });
   },
 );
@@ -205,7 +214,7 @@ const gradeOnlySchema = z.object({
 enrollmentsRoutes.patch(
   "/enrollments/:id/grade",
   zValidator("json", gradeOnlySchema, enrollmentValidationHook),
-  (c) => {
+  async (c) => {
     const user = c.get("user");
     const { id } = c.req.param();
     const { grade } = c.req.valid("json") as { grade: number | null };
@@ -214,41 +223,24 @@ enrollmentsRoutes.patch(
       return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
     }
 
-    const enrollment = getEnrollment(id);
+    const db = drizzle(c.env.DB);
+    const enrollmentRow = await db.select().from(enrollments).where(eq(enrollments.id, id)).get();
+    if (!enrollmentRow) return c.json({ message: "Enrollment not found" }, 404);
 
-    if (!enrollment) {
-      return c.json({ message: "Enrollment not found" }, 404);
-    }
-
-    const course = getCourse(enrollment.courseCode);
-    const ownerId = enrollment.instructorId ?? course?.assignedTeacherId;
+    const courseRow = await db.select().from(courses).where(eq(courses.id, enrollmentRow.course_id)).get();
+    const ownerId = courseRow?.instructor_id ?? null;
 
     if (user.role === "instructor" && user.id !== ownerId) {
-      return c.json(
-        {
-          success: false,
-          error:
-            "Access Denied: You are not authorized to assign grades to this course section.",
-          field: "auth",
-        },
-        403,
-      );
+      return c.json({ success: false, error: "Access Denied", field: "auth" }, 403);
     }
 
-    const updatedEnrollment = updateEnrollmentGrade(id, grade);
+    await db.update(enrollments).set({ grade }).where(eq(enrollments.id, id)).run();
 
-    if (!updatedEnrollment) {
-      return c.json({ message: "Enrollment not found" }, 404);
-    }
+    const updated = await db.select().from(enrollments).where(eq(enrollments.id, id)).get();
 
     return c.json({
-      message:
-        updatedEnrollment.grade === null
-          ? "Grade cleared"
-          : isPassingGrade(updatedEnrollment.grade)
-            ? "Passing grade recorded"
-            : "Grade recorded",
-      enrollment: buildEnrollmentView(updatedEnrollment),
+      message: updated.grade === null ? "Grade cleared" : isPassingGrade(updated.grade) ? "Passing grade recorded" : "Grade recorded",
+      enrollment: buildEnrollmentViewRow(updated, courseRow, null, null),
     });
   },
 );

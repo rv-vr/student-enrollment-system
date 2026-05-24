@@ -11,7 +11,7 @@ authRoutes.post(
   zValidator("json", loginSchema, loginValidationHook),
   async (c) => {
     const { username, password } = c.req.valid("json");
-    const user = authenticateActor(username, password);
+    const user = await authenticateActor(c.env.DB, username, password);
 
     if (!user) {
       return c.json(

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Context } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { ZodIssue } from "zod";
 
 import { gradeScaleMax, gradeScaleMin } from "./store";
@@ -179,7 +180,7 @@ export function createValidationErrorHook(options: ValidationHookOptions = {}) {
     }
 
     const issue = result.error.issues[0];
-    const statusCode = options.statusCode ?? 400;
+    const statusCode = (options.statusCode ?? 400) as number;
 
     if (!issue) {
       return c.json(
@@ -188,7 +189,7 @@ export function createValidationErrorHook(options: ValidationHookOptions = {}) {
           error: options.errorMessage ?? "Invalid input.",
           field: options.fieldName ?? "input",
         },
-        statusCode,
+        statusCode as unknown as ContentfulStatusCode,
       );
     }
 
@@ -203,7 +204,7 @@ export function createValidationErrorHook(options: ValidationHookOptions = {}) {
           options.errorMessage ?? formatValidationError(field, issue, options),
         field,
       },
-      statusCode,
+      statusCode as unknown as ContentfulStatusCode,
     );
   };
 }
