@@ -3,7 +3,8 @@
   "globalEnv": [
     "JWT_SECRET",
     "PUBLIC_PROD_API",
-    "PUBLIC_LOCAL_API"
+    "PUBLIC_LOCAL_API",
+    "D1_DATABASE_URL"
   ],
   "ui": "tui",
   "tasks": {
@@ -22,6 +23,10 @@
     },
     "check-types": {
       "dependsOn": ["^check-types"]
+    },
+    "db:generate": {
+      "cache": false,
+      "outputs": ["apps/api/drizzle/**"]
     },
     "dev": {
       "cache": false,

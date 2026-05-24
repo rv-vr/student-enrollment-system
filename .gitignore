@@ -63,3 +63,8 @@ apps/**/dist/
 packages/**/dist/
 apps/**/build/
 packages/**/build/
+
+# .gitignore
+.wrangler/
+*.db
+*.sqlite

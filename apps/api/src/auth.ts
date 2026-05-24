@@ -1,8 +1,11 @@
 import { createMiddleware } from "hono/factory";
 import { sign, verify } from "hono/jwt";
 import { z } from "zod";
+import { compare } from "bcryptjs";
 
-import { getHumanActor, getHumanActorRole, getLastName } from "./store";
+import { eq } from "drizzle-orm";
+import { users } from "./db/schema";
+import { getDbFromBindings } from "./db";
 
 export type AuthRole = "student" | "instructor" | "admin";
 
@@ -18,6 +21,7 @@ export type AppVariables = {
 
 export type AppBindings = {
   JWT_SECRET: string;
+  DB: D1Database;
 };
 
 const authUserSchema = z
@@ -43,22 +47,28 @@ export async function createAuthToken(secret: string, user: AuthUser) {
   );
 }
 
-export function authenticateActor(username: string, password: string) {
-  const actor = getHumanActor(username);
+export async function authenticateActor(
+  dbBinding: D1Database,
+  username: string,
+  password: string,
+) {
+  const db = getDbFromBindings({ DB: dbBinding });
 
-  if (!actor) {
-    return undefined;
-  }
+  const actor = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, username))
+    .get();
 
-  if (getLastName(actor.name).toLowerCase() !== password.trim().toLowerCase()) {
-    return undefined;
-  }
+  if (!actor) return undefined;
 
-  const role = getHumanActorRole(actor.id);
+  const passwordMatches = await compare(password, actor.passwordHash);
 
-  if (!role) {
-    return undefined;
-  }
+  if (!passwordMatches) return undefined;
+
+  const role = actor.role as AuthRole;
+
+  if (!role) return undefined;
 
   return {
     id: actor.id,

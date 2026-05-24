@@ -1,14 +1,59 @@
 import { zValidator } from "@hono/zod-validator";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
+
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
+import { courses, enrollments, notifications, users } from "../db/schema";
 import { studentIdParamSchema, studentValidationHook } from "../validators";
-import {
-  buildEnrollmentView,
-  getCompletedCourses,
-  getEnrollmentsForStudent,
-  getNotificationsForStudent,
-  getStudent,
-} from "../store";
+
+type CourseRow = typeof courses.$inferSelect;
+type EnrollmentRow = typeof enrollments.$inferSelect;
+type NotificationRow = typeof notifications.$inferSelect;
+type UserRow = typeof users.$inferSelect;
+
+function parseJsonArray(value: string | null | undefined) {
+  if (!value) return [] as unknown[];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [] as unknown[];
+  }
+}
+
+function buildEnrollmentViewRow(
+  row: EnrollmentRow,
+  courseRow?: CourseRow,
+  studentRow?: UserRow,
+) {
+  return {
+    id: row.id,
+    userId: row.userId,
+    studentId: row.userId,
+    courseId: row.courseId,
+    courseCode: row.courseId,
+    status: row.status,
+    section: row.section,
+    instructorId: row.instructorId,
+    scheduleArray: parseJsonArray(row.scheduleArray),
+    dateEnrolled: row.dateEnrolled,
+    dateRequested: row.dateRequested,
+    grade: row.grade,
+    remark: row.remark,
+    student: studentRow
+      ? {
+          id: studentRow.id,
+          username: studentRow.username,
+          name: studentRow.name,
+        }
+      : null,
+    course: courseRow
+      ? { ...courseRow, prerequisites: parseJsonArray(courseRow.prerequisites) }
+      : null,
+  };
+}
 
 export const studentsRoutes = new Hono<{
   Bindings: AppBindings;
@@ -20,48 +65,70 @@ studentsRoutes.use("*", requireAuth);
 studentsRoutes.get(
   "/:id/courses",
   zValidator("param", studentIdParamSchema, studentValidationHook),
-  (c) => {
+  async (c) => {
     const user = c.get("user");
     const { id } = c.req.valid("param");
-    const student = getStudent(id);
+    const db = drizzle(c.env.DB);
 
     if (user.role === "student" && user.id !== id) {
       return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
     }
 
-    if (!student) {
-      return c.json({ message: "Student not found" }, 404);
-    }
+    const student = await db.select().from(users).where(eq(users.id, id)).get();
+    if (!student) return c.json({ message: "Student not found" }, 404);
 
-    const enrollments = getEnrollmentsForStudent(student.id);
+    const enrollRows = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.userId, id))
+      .all();
 
-    return c.json({
-      student,
-      completedCourses: getCompletedCourses(student.id),
-      enrollments: enrollments.map(buildEnrollmentView),
-    });
+    const enrollmentsView = await Promise.all(
+      enrollRows.map(async (row) => {
+        const courseRow = await db
+          .select()
+          .from(courses)
+          .where(eq(courses.id, row.courseId))
+          .get();
+        return buildEnrollmentViewRow(row, courseRow, student);
+      }),
+    );
+
+    const completedCourses = enrollRows
+      .filter((row) => row.status === "completed")
+      .map((row) => row.courseId);
+
+    return c.json({ student, completedCourses, enrollments: enrollmentsView });
   },
 );
 
 studentsRoutes.get(
   "/:id/notifications",
   zValidator("param", studentIdParamSchema, studentValidationHook),
-  (c) => {
+  async (c) => {
     const user = c.get("user");
     const { id } = c.req.valid("param");
-    const student = getStudent(id);
+    const db = drizzle(c.env.DB);
 
     if (user.role === "student" && user.id !== id) {
       return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
     }
 
-    if (!student) {
-      return c.json({ message: "Student not found" }, 404);
-    }
+    const student = await db.select().from(users).where(eq(users.id, id)).get();
+    if (!student) return c.json({ message: "Student not found" }, 404);
+
+    const notificationRows = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, id))
+      .all();
 
     return c.json({
       student,
-      notifications: getNotificationsForStudent(student.id).slice().reverse(),
+      notifications: notificationRows.map((row: NotificationRow) => ({
+        ...row,
+        isRead: Boolean(row.isRead),
+      })),
     });
   },
 );
