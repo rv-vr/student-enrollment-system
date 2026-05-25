@@ -11,6 +11,7 @@ import {
   enrollSchema,
   enrollmentValidationHook,
   gradeSchema,
+  sectionEnrollSchema,
 } from "../validators";
 import { isPassingGrade } from "../store";
 
@@ -143,6 +144,106 @@ export const enrollmentsRoutes = new Hono<{
 }>();
 
 enrollmentsRoutes.use("*", requireAuth);
+
+enrollmentsRoutes.post(
+  "/enrollments",
+  zValidator("json", sectionEnrollSchema, enrollmentValidationHook),
+  async (c) => {
+    const user = c.get("user");
+
+    if (user.role !== "student") {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
+
+    const { sectionId } = c.req.valid("json");
+    const db = drizzle(c.env.DB);
+
+    const sectionRow = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, sectionId))
+      .get();
+
+    if (!sectionRow) {
+      return c.json({ message: "Section not found" }, 404);
+    }
+
+    const existingEnrollment = await db
+      .select()
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.userId, user.id),
+          eq(enrollments.sectionId, sectionId),
+        ),
+      )
+      .get();
+
+    if (existingEnrollment) {
+      return c.json({ message: "Already enrolled in this section" }, 400);
+    }
+
+    const activeEnrollments = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.sectionId, sectionId))
+      .all();
+
+    const activeSeatCount = activeEnrollments.filter(
+      (row) => row.status === "ongoing" || row.status === "completed",
+    ).length;
+
+    if (activeSeatCount >= sectionRow.capacity) {
+      return c.json({ message: "This section is full" }, 400);
+    }
+
+    const enrollmentId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+
+    await db
+      .insert(enrollments)
+      .values({
+        id: enrollmentId,
+        status: "ongoing",
+        courseId: sectionRow.courseId,
+        sectionId: sectionRow.id,
+        userId: user.id,
+        dateEnrolled: timestamp,
+        dateRequested: timestamp,
+        grade: null,
+        remark: null,
+      })
+      .run();
+
+    const createdEnrollment = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.id, enrollmentId))
+      .get();
+
+    if (!createdEnrollment) {
+      return c.json({ message: "Enrollment not found" }, 404);
+    }
+
+    return c.json(
+      {
+        message: "Enrollment created",
+        enrollment: {
+          id: createdEnrollment.id,
+          userId: createdEnrollment.userId,
+          courseId: createdEnrollment.courseId,
+          sectionId: createdEnrollment.sectionId,
+          status: createdEnrollment.status,
+          dateEnrolled: createdEnrollment.dateEnrolled,
+          dateRequested: createdEnrollment.dateRequested,
+          grade: createdEnrollment.grade,
+          remark: createdEnrollment.remark,
+        },
+      },
+      201,
+    );
+  },
+);
 
 enrollmentsRoutes.post(
   "/enroll",

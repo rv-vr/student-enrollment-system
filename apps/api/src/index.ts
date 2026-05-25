@@ -32,6 +32,7 @@ app.get("/", (c) => {
       "/sections",
       "/students/:id/courses",
       "/students/:id/notifications",
+      "/enrollments",
       "/enroll",
       "/drop",
       "/grade",

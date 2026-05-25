@@ -59,6 +59,10 @@ export const sectionCreateSchema = z.object({
   scheduleArray: z.array(sectionScheduleItemSchema).default([]),
 });
 
+export const sectionEnrollSchema = z.object({
+  sectionId: z.string().uuid(),
+});
+
 export const enrollSchema = z.object({
   studentId: z.string().uuid(),
   courseCode: z
