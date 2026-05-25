@@ -197,6 +197,14 @@ tbody tr:hover {
   color: var(--text);
 }
 
+.mobile-nav {
+  display: none;
+}
+
+.desktop-nav {
+  display: inline-flex;
+}
+
 .session-readout {
   display: grid;
   gap: 0.4rem;
@@ -223,6 +231,32 @@ tbody tr:hover {
   box-shadow: none;
   border: 1px solid var(--border);
   margin-left: auto;
+}
+
+.login-button {
+  margin-left: auto;
+}
+
+@media (max-width: 760px) {
+  .desktop-nav {
+    display: none;
+  }
+
+  .mobile-nav {
+    display: inline-flex;
+    width: 100%;
+    order: 3;
+    margin-left: 0;
+  }
+
+  .logout-button,
+  .login-button {
+    margin-left: 0;
+  }
+
+  .topbar {
+    align-items: stretch;
+  }
 }
 
 main {
