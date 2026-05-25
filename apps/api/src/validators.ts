@@ -86,6 +86,11 @@ export const gradeSchema = z.object({
   grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
 });
 
+export const instructorGradeUpdateSchema = z.object({
+  grade: z.union([z.string().trim().min(1), z.number(), z.null()]).optional(),
+  remark: z.union([z.string().trim().min(1), z.null()]).optional(),
+});
+
 export const enrollmentStatusSchema = z.enum([
   "completed",
   "inc",
