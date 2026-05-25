@@ -5,6 +5,7 @@ import type {
   ApiErrorResponse,
   CourseAvailability,
   CourseCatalogEntry,
+  InstructorSectionsResponse,
   LoginResponse,
   MutationResponse,
   PublicUsersResponse,
@@ -43,12 +44,26 @@ const studentNotificationsGet = rpcClient.students[":id"].notifications.$get;
 
 export const client = {
   api: {
+    instructor: {
+      sections: {
+        $get: (...args: Parameters<typeof rpcClient.instructor.sections.$get>) =>
+          rpcClient.instructor.sections.$get(...args),
+      },
+    },
     enrollments: {
       $post: (...args: Parameters<typeof rpcClient.enrollments.$post>) =>
         rpcClient.enrollments.$post(...args),
+      ":id": {
+        grade: {
+          $patch: (...args: any[]) =>
+            rpcClient.enrollments[":id"].grade.$patch(...args),
+        },
+      },
     },
   },
 };
+
+export type { InstructorSectionsResponse };
 
 export type InstructorClassesResponse = InferResponseType<
   typeof rpcClient.instructor.classes.$get

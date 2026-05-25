@@ -116,3 +116,48 @@ export type MutationResponse = {
   availability?: MutationAvailability;
   prerequisites?: string[];
 };
+
+export type InstructorRosterStudent = {
+  id: string;
+  username: string;
+  name: string;
+};
+
+export type InstructorRosterEntry = {
+  id: string;
+  userId: string;
+  studentId: string;
+  courseId: string;
+  sectionId: string;
+  status: string;
+  section: null;
+  scheduleArray: unknown[];
+  dateRequested: string;
+  dateEnrolled: string;
+  grade: number | null;
+  remark: string | null;
+  student: InstructorRosterStudent | null;
+};
+
+export type InstructorSectionSummary = {
+  id: string;
+  courseId: string;
+  instructorId: string;
+  sectionName: string;
+  capacity: number;
+  scheduleArray: SectionScheduleEntry[];
+  courseCode: string;
+  courseTitle: string;
+  enrolledCount: number;
+  remainingSeats: number;
+};
+
+export type InstructorSectionBundle = {
+  section: InstructorSectionSummary;
+  course: Record<string, unknown>;
+  roster: InstructorRosterEntry[];
+};
+
+export type InstructorSectionsResponse = {
+  sections: InstructorSectionBundle[];
+};
