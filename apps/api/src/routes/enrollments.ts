@@ -36,6 +36,12 @@ function parseJsonArray(value: unknown) {
   }
 }
 
+function normalizeCourseCodeList(value: unknown) {
+  return parseJsonArray(value)
+    .map((entry) => String(entry).trim().toUpperCase())
+    .filter((entry) => entry.length > 0);
+}
+
 function normalizeGradeInput(value: unknown) {
   if (value === null || value === undefined) {
     return null;
@@ -207,6 +213,17 @@ enrollmentsRoutes.post(
       return c.json({ message: "Section not found" }, 404);
     }
 
+    const targetSectionCourseRow = await db
+      .select({ prerequisites: courses.prerequisites })
+      .from(sections)
+      .innerJoin(courses, eq(sections.courseId, courses.id))
+      .where(eq(sections.id, sectionId))
+      .get();
+
+    const requiredPrerequisites = normalizeCourseCodeList(
+      targetSectionCourseRow?.prerequisites,
+    );
+
     const existingEnrollment = await db
       .select()
       .from(enrollments)
@@ -234,6 +251,39 @@ enrollmentsRoutes.post(
 
     if (activeSeatCount >= sectionRow.capacity) {
       return c.json({ message: "This section is full" }, 400);
+    }
+
+    if (requiredPrerequisites.length > 0) {
+      const completedHistory = await db
+        .select({ courseCode: courses.id })
+        .from(enrollments)
+        .innerJoin(sections, eq(enrollments.sectionId, sections.id))
+        .innerJoin(courses, eq(sections.courseId, courses.id))
+        .where(
+          and(
+            eq(enrollments.userId, user.id),
+            eq(enrollments.status, "completed"),
+          ),
+        )
+        .all();
+
+      const completedCourseCodes = new Set(
+        completedHistory.map((row) => row.courseCode.toUpperCase()),
+      );
+      const missingPrerequisites = requiredPrerequisites.filter(
+        (courseCode) => !completedCourseCodes.has(courseCode),
+      );
+
+      if (missingPrerequisites.length > 0) {
+        return c.json(
+          {
+            message: `Cannot enroll. You are missing the following prerequisites: [${missingPrerequisites.join(
+              ", ",
+            )}]`,
+          },
+          400,
+        );
+      }
     }
 
     const enrollmentId = crypto.randomUUID();
