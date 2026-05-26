@@ -15,6 +15,19 @@
     credits: number;
   };
 
+  type StudentEnrollmentView = {
+    id: string;
+    courseCode: string;
+    courseTitle: string;
+    sectionName: string;
+    instructorName: string;
+    scheduleArray: SectionScheduleEntry[];
+    status: string;
+    grade: number | null;
+    remark: string | null;
+    credits: number;
+  };
+
   type FeedbackState = {
     tone: "success" | "error";
     message: string;
@@ -22,7 +35,8 @@
 
   let session = $derived($authSession);
   let sections = $state<StudentSection[]>([]);
-  let myEnrollments = $state<StudentSection[]>([]);
+  let myEnrollments = $state<StudentEnrollmentView[]>([]);
+  let profile = $state<StudentCoursesResponse["student"] | null>(null);
   let feedback = $state<FeedbackState | null>(null);
   let isLoading = $state(false);
 
@@ -48,8 +62,32 @@
     return "Unable to update your schedule.";
   }
 
-  function isOngoingEnrollment(enrollment: StudentCoursesResponse["enrollments"][number]) {
-    return enrollment.status === "ongoing";
+  function toStatusLabel(status: string) {
+    if (status === "ongoing") {
+      return "In Progress";
+    }
+
+    if (status === "finalized") {
+      return "Completed";
+    }
+
+    return status;
+  }
+
+  function toStatusTone(status: string) {
+    if (status === "finalized") {
+      return "completed";
+    }
+
+    if (status === "ongoing") {
+      return "in-progress";
+    }
+
+    return "default";
+  }
+
+  function hasFinalGrade(status: string) {
+    return status === "finalized";
   }
 
   async function loadDashboard(studentId: string) {
@@ -75,18 +113,45 @@
           0,
       }));
 
-      const enrollmentSections = (studentCoursesResponse.enrollments ?? [])
-        .filter(isOngoingEnrollment)
-        .map((enrollment) => {
+      const enrollmentSections = (studentCoursesResponse.enrollments ?? []).map(
+        (enrollment) => {
           const matchingSection = sectionRows.find(
             (section) => section.id === enrollment.sectionId,
           );
 
-          return matchingSection ?? null;
-        })
-        .filter((section): section is StudentSection => section !== null);
+          const courseCode =
+            matchingSection?.courseCode ?? enrollment.course?.code ?? enrollment.courseCode;
+          const courseTitle =
+            matchingSection?.courseTitle ??
+            enrollment.course?.title ??
+            enrollment.courseCode;
+          const sectionName = matchingSection?.sectionName ?? "Unassigned section";
+          const instructorName = matchingSection?.instructorName ?? "TBA";
+          const scheduleArray =
+            matchingSection?.scheduleArray ?? enrollment.scheduleArray ?? [];
+          const credits =
+            matchingSection?.credits ??
+            creditsByCourseCode.get(courseCode) ??
+            creditsByCourseCode.get(enrollment.courseCode) ??
+            0;
+
+          return {
+            id: enrollment.id,
+            courseCode,
+            courseTitle,
+            sectionName,
+            instructorName,
+            scheduleArray,
+            status: enrollment.status,
+            grade: enrollment.grade ?? null,
+            remark: enrollment.remark ?? null,
+            credits,
+          } satisfies StudentEnrollmentView;
+        },
+      );
 
       sections = sectionRows;
+      profile = studentCoursesResponse.student ?? null;
       myEnrollments = enrollmentSections;
     } catch (error) {
       feedback = {
@@ -110,6 +175,12 @@
         tone: "error",
         message: "Section not found.",
       };
+      return;
+    }
+
+    const confirmed = confirm("Are you sure you want to register for this class section?");
+
+    if (!confirmed) {
       return;
     }
 
@@ -147,9 +218,42 @@
           : section,
       );
 
-      myEnrollments = myEnrollments.some((section) => section.id === sectionId)
-        ? myEnrollments
-        : [...myEnrollments, targetSection];
+      const refreshed = await getStudentCourses(session.user.id);
+      const creditsByCourseCode = new Map(
+        (await getCourses()).map((course) => [course.code, getCourseCredits(course)]),
+      );
+
+      profile = refreshed.student ?? null;
+
+      myEnrollments = (refreshed.enrollments ?? []).map((enrollment) => {
+        const matchingSection = sections.find(
+          (section) => section.id === enrollment.sectionId,
+        );
+
+        const courseCode =
+          matchingSection?.courseCode ?? enrollment.course?.code ?? enrollment.courseCode;
+        const courseTitle =
+          matchingSection?.courseTitle ??
+          enrollment.course?.title ??
+          enrollment.courseCode;
+
+        return {
+          id: enrollment.id,
+          courseCode,
+          courseTitle,
+          sectionName: matchingSection?.sectionName ?? "Unassigned section",
+          instructorName: matchingSection?.instructorName ?? "TBA",
+          scheduleArray: matchingSection?.scheduleArray ?? enrollment.scheduleArray ?? [],
+          status: enrollment.status,
+          grade: enrollment.grade ?? null,
+          remark: enrollment.remark ?? null,
+          credits:
+            matchingSection?.credits ??
+            creditsByCourseCode.get(courseCode) ??
+            creditsByCourseCode.get(enrollment.courseCode) ??
+            0,
+        } satisfies StudentEnrollmentView;
+      });
 
       feedback = {
         tone: "success",
@@ -166,7 +270,9 @@
   }
 
   let totalCredits = $derived(
-    myEnrollments.reduce((sum, section) => sum + section.credits, 0),
+    myEnrollments
+      .filter((enrollment) => enrollment.status === "ongoing")
+      .reduce((sum, enrollment) => sum + enrollment.credits, 0),
   );
 
   $effect(() => {
@@ -214,6 +320,17 @@
       <span class="credits-label">Total enrolled credits</span>
     </div>
   </header>
+
+  <section class="profile-card" aria-label="Student profile">
+    <div>
+      <p class="eyebrow">Student Profile</p>
+      <h2>{session?.user.name ?? profile?.name ?? "Student"}</h2>
+      <p class="profile-subcopy">
+        Academic Student ID: <strong>{profile?.username ?? session?.user.id ?? "N/A"}</strong>
+      </p>
+    </div>
+    <span class="profile-badge">Status: Active Student</span>
+  </section>
 
   {#if feedback}
     <div class="banner" data-tone={feedback.tone} role="status" aria-live="polite">
@@ -295,9 +412,9 @@
       <div class="panel-header">
         <div>
           <p class="eyebrow">My Schedule Matrix</p>
-          <h2>Current load</h2>
+          <h2>My Schedule / Enrollments</h2>
         </div>
-        <span class="panel-chip">{myEnrollments.length} active</span>
+        <span class="panel-chip">{myEnrollments.length} records</span>
       </div>
 
       {#if myEnrollments.length === 0}
@@ -306,34 +423,55 @@
           <p>Select a section from the left to start building your schedule.</p>
         </div>
       {:else}
-        <div class="schedule-stack">
-          {#each myEnrollments as section (section.id)}
-            <article class="schedule-card">
-              <div class="schedule-card-top">
-                <div>
-                  <strong>{section.courseCode}</strong>
-                  <h3>{section.courseTitle}</h3>
-                </div>
-                <span class="credits-pill">{section.credits} credits</span>
-              </div>
-
-              <p class="section-name">{section.sectionName} · {section.instructorName}</p>
-
-              <div class="schedule-list compact">
-                {#each section.scheduleArray as scheduleItem, index (index)}
-                  <span>{formatSchedule([scheduleItem])}</span>
-                {/each}
-                {#if section.scheduleArray.length === 0}
-                  <span>TBA</span>
-                {/if}
-              </div>
-
-              <div class="card-meta">
-                <span>Seat load</span>
-                <strong>{section.capacity - section.remainingSeats} / {section.capacity}</strong>
-              </div>
-            </article>
-          {/each}
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Course</th>
+                <th scope="col">Section</th>
+                <th scope="col">Status</th>
+                <th scope="col">Final Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each myEnrollments as enrollment (enrollment.id)}
+                <tr>
+                  <td>
+                    <div class="course-block">
+                      <strong>{enrollment.courseCode}</strong>
+                      <span>{enrollment.courseTitle}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div>{enrollment.sectionName} · {enrollment.instructorName}</div>
+                    <div class="schedule-list compact">
+                      {#each enrollment.scheduleArray as scheduleItem, index (index)}
+                        <span>{formatSchedule([scheduleItem])}</span>
+                      {/each}
+                      {#if enrollment.scheduleArray.length === 0}
+                        <span>TBA</span>
+                      {/if}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="status-pill" data-tone={toStatusTone(enrollment.status)}>
+                      {toStatusLabel(enrollment.status)}
+                    </span>
+                  </td>
+                  <td>
+                    {#if hasFinalGrade(enrollment.status)}
+                      <div class="grade-cell finalized-grade">
+                        <span class="grade-value">{enrollment.grade ?? "-"}</span>
+                        <span class="grade-remark">{enrollment.remark ?? "No remark"}</span>
+                      </div>
+                    {:else}
+                      <span class="grade-value">-</span>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </div>
       {/if}
     </section>
@@ -359,7 +497,8 @@
 
   .hero,
   .panel,
-  .banner {
+  .banner,
+  .profile-card {
     border: 1px solid rgba(20, 32, 51, 0.12);
     border-radius: 24px;
     background: rgba(255, 255, 255, 0.82);
@@ -417,8 +556,34 @@
   .credits-label,
   .panel-chip,
   .seat-pill,
-  .credits-pill {
+  .status-pill {
     font-size: 0.82rem;
+  }
+
+  .profile-card {
+    padding: 1rem 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .profile-subcopy {
+    margin-top: 0.35rem;
+    color: #516074;
+  }
+
+  .profile-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    background: rgba(28, 136, 82, 0.12);
+    border: 1px solid rgba(28, 136, 82, 0.22);
+    color: #18613d;
+    font-weight: 700;
+    font-size: 0.82rem;
+    white-space: nowrap;
   }
 
   .banner {
@@ -459,7 +624,7 @@
 
   .panel-chip,
   .seat-pill,
-  .credits-pill {
+  .status-pill {
     display: inline-flex;
     align-items: center;
     padding: 0.35rem 0.65rem;
@@ -467,6 +632,17 @@
     background: rgba(20, 32, 51, 0.08);
     color: #304057;
     font-weight: 600;
+  }
+
+  .status-pill[data-tone="in-progress"] {
+    background: rgba(20, 32, 51, 0.08);
+    color: #304057;
+  }
+
+  .status-pill[data-tone="completed"] {
+    background: rgba(28, 136, 82, 0.12);
+    border: 1px solid rgba(28, 136, 82, 0.22);
+    color: #18613d;
   }
 
   .table-shell {
@@ -504,7 +680,6 @@
 
   .course-block span,
   .course-block small,
-  .schedule-card .section-name,
   .empty-state p {
     color: #516074;
   }
@@ -521,6 +696,27 @@
 
   .schedule-list.compact {
     margin-top: 0.7rem;
+  }
+
+  .grade-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+
+  .grade-value {
+    font-weight: 700;
+    color: #223247;
+  }
+
+  .grade-remark {
+    color: #516074;
+    font-size: 0.86rem;
+  }
+
+  .finalized-grade .grade-value {
+    color: #18613d;
   }
 
   .enroll-button {
@@ -553,52 +749,6 @@
     gap: 0.95rem;
   }
 
-  .schedule-stack {
-    display: grid;
-    gap: 0.9rem;
-  }
-
-  .schedule-card {
-    padding: 1rem 1rem 0.95rem;
-    border-radius: 18px;
-    background: linear-gradient(180deg, rgba(248, 250, 255, 0.98), rgba(238, 244, 251, 0.98));
-    border: 1px solid rgba(20, 32, 51, 0.08);
-  }
-
-  .schedule-card-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    align-items: start;
-  }
-
-  .schedule-card-top strong {
-    font-size: 0.84rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #516074;
-  }
-
-  .schedule-card-top h3 {
-    margin-top: 0.18rem;
-    font-size: 1.08rem;
-  }
-
-  .credits-pill {
-    background: rgba(48, 111, 214, 0.12);
-    color: #2456a6;
-  }
-
-  .card-meta {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-top: 0.85rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid rgba(20, 32, 51, 0.08);
-    color: #516074;
-  }
-
   .empty-state {
     padding: 2rem 1rem;
     text-align: center;
@@ -616,6 +766,11 @@
     }
 
     .hero {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .profile-card {
       align-items: flex-start;
       flex-direction: column;
     }

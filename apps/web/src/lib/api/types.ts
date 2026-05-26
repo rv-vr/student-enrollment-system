@@ -21,6 +21,7 @@ export type ApiErrorResponse = {
 export type Student = {
   id: string;
   name: string;
+  username?: string;
 };
 
 export type PublicUser = {
@@ -89,9 +90,14 @@ export type CourseAvailability = {
 
 export type EnrollmentRecord = {
   id: string;
+  userId?: string;
   studentId: string;
   courseCode: string;
+  status: string;
+  sectionId: string;
+  scheduleArray?: SectionScheduleEntry[];
   grade?: number | null;
+  remark?: string | null;
   createdAt: string;
   updatedAt: string;
   student?: Student;
