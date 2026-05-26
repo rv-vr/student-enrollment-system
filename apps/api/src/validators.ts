@@ -137,7 +137,7 @@ export const loginSchema = z.object({
   username: z
     .string()
     .trim()
-    .regex(/^2026-\d{4}-(?:A|I|H|F|R)$/),
+    .regex(/^20\d{2}-\d{4}-(?:A|I|H|F|R)$/),
   password: z.string().trim().min(1),
 });
 
