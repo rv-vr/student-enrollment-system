@@ -213,20 +213,38 @@
   <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
     <div class="flex flex-col md:flex-row justify-between gap-6">
       <div>
-        <Heading tag="h1" class="text-2xl font-bold">Admin User Management</Heading>
+        <Heading tag="h1" class="text-2xl font-bold"
+          >Admin User Management</Heading
+        >
         <P class="lede mt-2">
           Provision student, instructor, and admin accounts, then review active
           users in one place.
         </P>
       </div>
       <div class="hero-stats flex gap-4">
-        <Card size="sm" class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-2">
-          <span class="stat-value text-2xl font-bold text-gray-900 dark:text-white">{users.length}</span>
-          <span class="stat-label text-sm text-gray-500 dark:text-gray-400">Provisioned Accounts</span>
+        <Card
+          size="sm"
+          class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-2"
+        >
+          <span
+            class="stat-value text-2xl font-bold text-gray-900 dark:text-white"
+            >{users.length}</span
+          >
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400"
+            >Provisioned Accounts</span
+          >
         </Card>
-        <Card size="sm" class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-2">
-          <span class="stat-value text-2xl font-bold text-gray-900 dark:text-white">{createdUsers.length}</span>
-          <span class="stat-label text-sm text-gray-500 dark:text-gray-400">Created This Session</span>
+        <Card
+          size="sm"
+          class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-2"
+        >
+          <span
+            class="stat-value text-2xl font-bold text-gray-900 dark:text-white"
+            >{createdUsers.length}</span
+          >
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400"
+            >Created This Session</span
+          >
         </Card>
       </div>
     </div>
@@ -247,7 +265,8 @@
       <div class="panel-heading mb-6 flex justify-between items-start">
         <div>
           <p class="eyebrow">Create New User Account</p>
-          <Heading tag="h2" class="text-xl font-bold">Provision account</Heading>
+          <Heading tag="h2" class="text-xl font-bold">Provision account</Heading
+          >
         </div>
       </div>
 
@@ -328,7 +347,9 @@
           </div>
         </div>
 
-        <div class="form-actions mt-8 flex flex-col md:flex-row items-center gap-4">
+        <div
+          class="form-actions mt-8 flex flex-col md:flex-row items-center gap-4"
+        >
           <Button type="submit" disabled={isLoading} class="w-full md:w-auto">
             {isLoading ? "Creating account…" : "Create account"}
           </Button>
@@ -342,7 +363,9 @@
     </Card>
 
     <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
-      <div class="panel-heading mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div
+        class="panel-heading mb-6 flex flex-col md:flex-row justify-between items-center gap-4"
+      >
         <div>
           <p class="eyebrow">Currently Provisioned</p>
           <Heading tag="h2" class="text-xl font-bold">Search accounts</Heading>
@@ -357,11 +380,18 @@
       </div>
 
       {#if isFetching}
-        <div class="empty-state py-8 text-center text-gray-500">Loading user directory…</div>
+        <div class="empty-state py-8 text-center text-gray-500">
+          Loading user directory…
+        </div>
       {:else if filteredUsers.length === 0}
-        <div class="empty-state py-8 text-center text-gray-500">No users match the current search.</div>
+        <div class="empty-state py-8 text-center text-gray-500">
+          No users match the current search.
+        </div>
       {:else}
-        <Table hoverable={true} class="mt-4 shadow-none border border-slate-200 rounded-lg overflow-hidden">
+        <Table
+          hoverable={true}
+          class="mt-4 shadow-none border border-slate-200 rounded-lg overflow-hidden"
+        >
           <TableHead class="bg-gray-50 dark:bg-gray-800">
             <TableHeadCell>Name</TableHeadCell>
             <TableHeadCell>Username</TableHeadCell>
@@ -372,29 +402,47 @@
             {#each filteredUsers as user (user.id)}
               <TableBodyRow>
                 <TableBodyCell>
-                  <div class="primary-cell font-bold text-gray-900 dark:text-white truncate max-w-[200px]">
+                  <div
+                    class="primary-cell font-bold text-gray-900 dark:text-white truncate max-w-[200px]"
+                  >
                     {user.name}
                   </div>
-                  <div class="secondary-cell text-xs text-gray-500 dark:text-gray-400 truncate">
+                  <div
+                    class="secondary-cell text-xs text-gray-500 dark:text-gray-400 truncate"
+                  >
                     {user.id}
                   </div>
                 </TableBodyCell>
                 <TableBodyCell>
-                  <Badge color="blue" class="rounded-full px-2 py-0.5">{user.username}</Badge>
+                  <Badge color="blue" class="rounded-full px-2 py-0.5"
+                    >{user.username}</Badge
+                  >
                 </TableBodyCell>
                 <TableBodyCell>
                   <Badge
-                    color={user.role === "admin" ? "yellow" : user.role === "instructor" ? "purple" : "blue"}
+                    color={user.role === "admin"
+                      ? "yellow"
+                      : user.role === "instructor"
+                        ? "purple"
+                        : "blue"}
                     class="rounded-full px-2 py-0.5"
                   >
                     {user.role}
                   </Badge>
                 </TableBodyCell>
                 <TableBodyCell>
-                  <div class="profile-stack text-sm text-gray-500 dark:text-gray-400 space-y-1">
-                    <div class="truncate max-w-[200px]">{user.college ?? "-"}</div>
-                    <div class="truncate max-w-[200px]">{user.program ?? "-"}</div>
-                    <div class="truncate max-w-[200px]">{user.campus ?? "-"}</div>
+                  <div
+                    class="profile-stack text-sm text-gray-500 dark:text-gray-400 space-y-1"
+                  >
+                    <div class="truncate max-w-[200px]">
+                      {user.college ?? "-"}
+                    </div>
+                    <div class="truncate max-w-[200px]">
+                      {user.program ?? "-"}
+                    </div>
+                    <div class="truncate max-w-[200px]">
+                      {user.campus ?? "-"}
+                    </div>
                   </div>
                 </TableBodyCell>
               </TableBodyRow>
@@ -408,7 +456,9 @@
   <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
     <div class="panel-heading mb-6">
       <p class="eyebrow">Session History</p>
-      <Heading tag="h2" class="text-xl font-bold">Recently Created Accounts</Heading>
+      <Heading tag="h2" class="text-xl font-bold"
+        >Recently Created Accounts</Heading
+      >
     </div>
 
     {#if recentCreatedUsers.length === 0}
@@ -416,20 +466,32 @@
         No accounts have been created during this session.
       </div>
     {:else}
-      <div class="history-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div
+        class="history-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
         {#each recentCreatedUsers as user (user.id)}
           <Card size="md" class="shadow-none border-slate-200 bg-gray-50/30">
             <div class="history-top flex justify-between items-start mb-3">
               <strong class="text-gray-900 dark:text-white">{user.name}</strong>
               <Badge
-                color={user.role === "admin" ? "yellow" : user.role === "instructor" ? "purple" : "blue"}
+                color={user.role === "admin"
+                  ? "yellow"
+                  : user.role === "instructor"
+                    ? "purple"
+                    : "blue"}
                 class="rounded-full"
               >
                 {user.role}
               </Badge>
             </div>
-            <div class="history-username text-primary-600 font-bold mb-3 break-all">{user.username}</div>
-            <div class="history-meta text-sm text-gray-500 dark:text-gray-400 space-y-1">
+            <div
+              class="history-username text-primary-600 font-bold mb-3 break-all"
+            >
+              {user.username}
+            </div>
+            <div
+              class="history-meta text-sm text-gray-500 dark:text-gray-400 space-y-1"
+            >
               <div>{user.college ?? "No college"}</div>
               <div>{user.program ?? "No program"}</div>
               <div>{user.campus ?? "No campus"}</div>

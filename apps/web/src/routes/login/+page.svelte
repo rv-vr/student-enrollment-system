@@ -75,21 +75,32 @@
   <meta name="description" content="Sign in to the Course Enrollment System" />
 </svelte:head>
 
-<div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0 bg-gray-50 dark:bg-gray-900">
-  <div class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
+<div
+  class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0 bg-gray-50 dark:bg-gray-900"
+>
+  <div
+    class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white"
+  >
     <LockSolid class="w-8 h-8 mr-2 text-primary-600" />
     UniACES
   </div>
 
   <Card class="w-full sm:max-w-md">
     <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
-      <Heading tag="h1" class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
+      <Heading
+        tag="h1"
+        class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white"
+      >
         Sign in to your account
       </Heading>
 
       <form class="space-y-4 md:space-y-6" onsubmit={handleLogin}>
         <div>
-          <Label for="username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Academic ID</Label>
+          <Label
+            for="username"
+            class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            >Academic ID</Label
+          >
           <Input
             type="text"
             name="username"
@@ -103,7 +114,11 @@
         </div>
 
         <div>
-          <Label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</Label>
+          <Label
+            for="password"
+            class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            >Password</Label
+          >
           <Input
             type={showPassword ? "text" : "password"}
             name="password"
@@ -120,9 +135,13 @@
                 class="focus:outline-hidden"
               >
                 {#if showPassword}
-                  <EyeSlashOutline class="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <EyeSlashOutline
+                    class="w-5 h-5 text-gray-500 dark:text-gray-400"
+                  />
                 {:else}
-                  <EyeOutline class="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <EyeOutline
+                    class="w-5 h-5 text-gray-500 dark:text-gray-400"
+                  />
                 {/if}
               </button>
             {/snippet}
@@ -130,7 +149,10 @@
         </div>
 
         {#if alertMessage}
-          <Alert color={alertTone === "red" ? "red" : "green"} dismissable={false}>
+          <Alert
+            color={alertTone === "red" ? "red" : "green"}
+            dismissable={false}
+          >
             {#snippet icon()}
               <InfoCircleSolid class="w-5 h-5" />
             {/snippet}
@@ -148,7 +170,10 @@
 
         {#if session}
           <P class="text-sm font-light text-gray-500 dark:text-gray-400">
-            Already signed in as <span class="font-medium text-primary-600 dark:text-primary-500">{session.user.name}</span>.
+            Already signed in as <span
+              class="font-medium text-primary-600 dark:text-primary-500"
+              >{session.user.name}</span
+            >.
           </P>
         {/if}
       </form>

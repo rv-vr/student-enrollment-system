@@ -231,7 +231,11 @@
   <Card size="xl" class="shadow-none border-slate-200 max-w-none">
     <div class="flex flex-col md:flex-row justify-between gap-6 p-4">
       <div>
-        <Heading tag="h1" class="text-2xl font-bold text-gray-900 dark:text-white">Course Catalog Control</Heading>
+        <Heading
+          tag="h1"
+          class="text-2xl font-bold text-gray-900 dark:text-white"
+          >Course Catalog Control</Heading
+        >
         <P class="lede mt-2 text-gray-600 dark:text-gray-400">
           Register new courses, assign prerequisite chains, and keep the live
           catalog current.
@@ -239,13 +243,29 @@
       </div>
 
       <div class="hero-stats flex gap-4" aria-label="Catalog summary">
-        <Card size="sm" class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-4">
-          <span class="stat-value text-2xl font-bold text-gray-900 dark:text-white block">{courseCount}</span>
-          <span class="stat-label text-sm text-gray-500 dark:text-gray-400">Active Courses</span>
+        <Card
+          size="sm"
+          class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-4"
+        >
+          <span
+            class="stat-value text-2xl font-bold text-gray-900 dark:text-white block"
+            >{courseCount}</span
+          >
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400"
+            >Active Courses</span
+          >
         </Card>
-        <Card size="sm" class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-4">
-          <span class="stat-value text-2xl font-bold text-gray-900 dark:text-white block">{recentCount}</span>
-          <span class="stat-label text-sm text-gray-500 dark:text-gray-400">Created This Session</span>
+        <Card
+          size="sm"
+          class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-4"
+        >
+          <span
+            class="stat-value text-2xl font-bold text-gray-900 dark:text-white block"
+            >{recentCount}</span
+          >
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400"
+            >Created This Session</span
+          >
         </Card>
       </div>
     </div>
@@ -266,7 +286,11 @@
       <div class="panel-heading mb-6 flex justify-between items-start">
         <div>
           <p class="eyebrow">Create New Course</p>
-          <Heading tag="h2" class="text-xl font-bold text-gray-900 dark:text-white">Register course</Heading>
+          <Heading
+            tag="h2"
+            class="text-xl font-bold text-gray-900 dark:text-white"
+            >Register course</Heading
+          >
         </div>
       </div>
 
@@ -343,39 +367,64 @@
               id="description"
               bind:value={form.description}
               placeholder="Short catalog description"
-              rows=4
+              rows="4"
               class="w-full placeholder-slate-400/50"
             ></Textarea>
           </div>
         </div>
 
-        <Card size="xl" class="shadow-none border-slate-200 bg-gray-50/30 max-w-none p-4">
+        <Card
+          size="xl"
+          class="shadow-none border-slate-200 bg-gray-50/30 max-w-none p-4"
+        >
           <div class="block-heading flex justify-between items-start mb-4">
             <div>
-              <Heading tag="h3" class="text-lg font-bold text-gray-900 dark:text-white">Prerequisite Selector</Heading>
-              <P size="sm" class="text-gray-500 dark:text-gray-400">Pick existing courses that must be completed first.</P>
+              <Heading
+                tag="h3"
+                class="text-lg font-bold text-gray-900 dark:text-white"
+                >Prerequisite Selector</Heading
+              >
+              <P size="sm" class="text-gray-500 dark:text-gray-400"
+                >Pick existing courses that must be completed first.</P
+              >
             </div>
-            <Badge color="indigo" class="rounded-full px-3">{form.prerequisites.length} selected</Badge>
+            <Badge color="indigo" class="rounded-full px-3"
+              >{form.prerequisites.length} selected</Badge
+            >
           </div>
 
           {#if prerequisiteOptions.length > 0}
-            <div class="checkbox-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" role="group" aria-label="Prerequisites">
+            <div
+              class="checkbox-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+              role="group"
+              aria-label="Prerequisites"
+            >
               {#each prerequisiteOptions as course (course.id)}
-                <div class="checkbox-card flex items-start gap-3 p-3 border border-slate-200 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+                <div
+                  class="checkbox-card flex items-start gap-3 p-3 border border-slate-200 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
+                >
                   <Checkbox
                     bind:group={form.prerequisites}
                     value={course.code}
                     class="mt-1"
                   />
                   <div class="flex flex-col min-w-0">
-                    <span class="font-bold text-gray-900 dark:text-white truncate">{course.code}</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{course.title}</span>
+                    <span
+                      class="font-bold text-gray-900 dark:text-white truncate"
+                      >{course.code}</span
+                    >
+                    <span
+                      class="text-xs text-gray-500 dark:text-gray-400 truncate"
+                      >{course.title}</span
+                    >
                   </div>
                 </div>
               {/each}
             </div>
           {:else}
-            <div class="empty-copy p-4 bg-white/50 border border-dashed border-slate-200 rounded-lg text-center text-gray-500 dark:bg-gray-800/50 dark:border-gray-600">
+            <div
+              class="empty-copy p-4 bg-white/50 border border-dashed border-slate-200 rounded-lg text-center text-gray-500 dark:bg-gray-800/50 dark:border-gray-600"
+            >
               Add at least one course before chaining prerequisites.
             </div>
           {/if}
@@ -396,19 +445,33 @@
       <div class="panel-heading mb-6 flex justify-between items-center">
         <div>
           <p class="eyebrow">Catalog Snapshot</p>
-          <Heading tag="h2" class="text-xl font-bold text-gray-900 dark:text-white">Active catalog</Heading>
+          <Heading
+            tag="h2"
+            class="text-xl font-bold text-gray-900 dark:text-white"
+            >Active catalog</Heading
+          >
         </div>
-        <Badge color={isFetching ? "yellow" : "green"} class="rounded-full px-3 py-1 font-bold">
+        <Badge
+          color={isFetching ? "yellow" : "green"}
+          class="rounded-full px-3 py-1 font-bold"
+        >
           {isFetching ? "Refreshing" : "Live view"}
         </Badge>
       </div>
 
       {#if isFetching}
-        <div class="empty-copy py-8 text-center text-gray-500">Loading course catalog…</div>
+        <div class="empty-copy py-8 text-center text-gray-500">
+          Loading course catalog…
+        </div>
       {:else if courses.length === 0}
-        <div class="empty-state py-8 text-center text-gray-500">No courses registered yet.</div>
+        <div class="empty-state py-8 text-center text-gray-500">
+          No courses registered yet.
+        </div>
       {:else}
-        <Table hoverable={true} class="shadow-none border border-slate-200 rounded-lg overflow-hidden">
+        <Table
+          hoverable={true}
+          class="shadow-none border border-slate-200 rounded-lg overflow-hidden"
+        >
           <TableHead class="bg-gray-50 dark:bg-gray-800">
             <TableHeadCell>Code</TableHeadCell>
             <TableHeadCell>Title</TableHeadCell>
@@ -419,20 +482,34 @@
           <TableBody>
             {#each courses as course (course.id)}
               <TableBodyRow>
-                <TableBodyCell class="font-bold text-gray-900 dark:text-white">{course.code}</TableBodyCell>
+                <TableBodyCell class="font-bold text-gray-900 dark:text-white"
+                  >{course.code}</TableBodyCell
+                >
                 <TableBodyCell>
-                  <div class="course-title font-bold text-gray-900 dark:text-white truncate max-w-[200px]">{course.title}</div>
+                  <div
+                    class="course-title font-bold text-gray-900 dark:text-white truncate max-w-[200px]"
+                  >
+                    {course.title}
+                  </div>
                   {#if course.description}
-                    <div class="course-description text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px] mt-1">{course.description}</div>
+                    <div
+                      class="course-description text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px] mt-1"
+                    >
+                      {course.description}
+                    </div>
                   {/if}
                 </TableBodyCell>
-                <TableBodyCell class="whitespace-nowrap">{formatCredits(course)}</TableBodyCell>
+                <TableBodyCell class="whitespace-nowrap"
+                  >{formatCredits(course)}</TableBodyCell
+                >
                 <TableBodyCell>
                   <Badge color="blue" class="rounded-full px-2 py-0.5">
                     {course.remainingSeats} / {course.capacity}
                   </Badge>
                 </TableBodyCell>
-                <TableBodyCell class="max-w-[200px] truncate">{formatPrerequisites(course)}</TableBodyCell>
+                <TableBodyCell class="max-w-[200px] truncate"
+                  >{formatPrerequisites(course)}</TableBodyCell
+                >
               </TableBodyRow>
             {/each}
           </TableBody>

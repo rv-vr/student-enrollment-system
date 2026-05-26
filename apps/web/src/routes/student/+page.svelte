@@ -475,9 +475,7 @@
       {#if myEnrollments.length === 0}
         <div class="empty-state">
           <h3>No active enrollments</h3>
-          <p>
-            Select a section from the left to start building your schedule.
-          </p>
+          <p>Select a section from the left to start building your schedule.</p>
         </div>
       {:else}
         <div

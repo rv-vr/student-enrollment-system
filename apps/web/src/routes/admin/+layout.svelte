@@ -18,7 +18,6 @@
   });
 </script>
 
-
-  <main class="admin-content">
-    {@render children()}
-  </main>
+<main class="admin-content">
+  {@render children()}
+</main>
