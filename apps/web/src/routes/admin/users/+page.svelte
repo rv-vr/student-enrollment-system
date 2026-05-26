@@ -10,6 +10,23 @@
     type AdminUser,
     type AdminUserCreatePayload,
   } from "$lib/api/client";
+  import {
+    Card,
+    Table,
+    TableHead,
+    TableHeadCell,
+    TableBody,
+    TableBodyRow,
+    TableBodyCell,
+    Badge,
+    Heading,
+    P,
+    Label,
+    Input,
+    Select,
+    Button,
+    Search,
+  } from "flowbite-svelte";
 
   type UserFormState = AdminUserCreatePayload;
   type NotificationState = {
@@ -192,235 +209,298 @@
   />
 </svelte:head>
 
-<section class="admin-users-page">
-  <header class="hero-card">
-    <div>
-      <p class="eyebrow">Milestone 3</p>
-      <h1>Admin User Management</h1>
-      <p class="lede">
-        Provision student, instructor, and admin accounts, then review active
-        users in one place.
-      </p>
-    </div>
-    <div class="hero-stats">
+<section class="admin-users-page space-y-6">
+  <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
+    <div class="flex flex-col md:flex-row justify-between gap-6">
       <div>
-        <span class="stat-value">{users.length}</span>
-        <span class="stat-label">Provisioned Accounts</span>
+        <Heading tag="h1" class="text-2xl font-bold"
+          >Admin User Management</Heading
+        >
+        <P class="lede mt-2">
+          Provision student, instructor, and admin accounts, then review active
+          users in one place.
+        </P>
       </div>
-      <div>
-        <span class="stat-value">{createdUsers.length}</span>
-        <span class="stat-label">Created This Session</span>
+      <div class="hero-stats flex gap-4">
+        <Card
+          size="sm"
+          class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-2"
+        >
+          <span
+            class="stat-value text-2xl font-bold text-gray-900 dark:text-white"
+            >{users.length}</span
+          >
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400"
+            >Provisioned Accounts</span
+          >
+        </Card>
+        <Card
+          size="sm"
+          class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-2"
+        >
+          <span
+            class="stat-value text-2xl font-bold text-gray-900 dark:text-white"
+            >{createdUsers.length}</span
+          >
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400"
+            >Created This Session</span
+          >
+        </Card>
       </div>
     </div>
-  </header>
+  </Card>
 
   {#if feedback}
-    <div
-      class="feedback"
-      data-tone={feedback.tone}
-      role="alert"
-      aria-live="assertive"
+    <Alert
+      color={feedback.tone === "success" ? "green" : "red"}
+      dismissable
+      class="rounded-xl border border-current"
     >
       {feedback.message}
-    </div>
+    </Alert>
   {/if}
 
-  <div class="admin-grid">
-    <section class="panel form-panel">
-      <div class="panel-heading">
+  <div class="admin-grid space-y-6">
+    <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
+      <div class="panel-heading mb-6 flex justify-between items-start">
         <div>
           <p class="eyebrow">Create New User Account</p>
-          <h2>Provision account</h2>
+          <Heading tag="h2" class="text-xl font-bold">Provision account</Heading
+          >
         </div>
-        <span class="panel-badge">Secure bcrypt flow</span>
       </div>
 
       <form class="provision-form" onsubmit={handleSubmit}>
-        <div class="form-grid">
-          <label>
-            <span>Name</span>
-            <input
+        <div class="form-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <Label for="name" class="mb-2">Name</Label>
+            <Input
+              id="name"
               bind:value={form.name}
               autocomplete="name"
               placeholder="Alex Rivera"
+              class="placeholder-slate-400/50"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            <span>Password</span>
-            <input
+          <div>
+            <Label for="password" class="mb-2">Password</Label>
+            <Input
+              id="password"
               bind:value={form.password}
               autocomplete="new-password"
               placeholder="Create a strong password"
+              class="placeholder-slate-400/50"
               required
               type="password"
             />
-          </label>
+          </div>
 
-          <label>
-            <span>Role</span>
-            <select bind:value={form.role}>
+          <div>
+            <Label for="role" class="mb-2">Role</Label>
+            <Select id="role" bind:value={form.role}>
               <option value="student">Student</option>
               <option value="instructor">Instructor</option>
               <option value="admin">Admin</option>
-            </select>
-          </label>
+            </Select>
+          </div>
         </div>
 
-        <div class="conditional-fields" data-active={showAcademicFields}>
-          <div class="academic-grid">
-            <label>
-              <span>College</span>
-              <input
+        <div class="conditional-fields mt-6" data-active={showAcademicFields}>
+          <div class="academic-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label for="college" class="mb-2">College</Label>
+              <Input
+                id="college"
                 bind:value={form.college}
                 autocomplete="organization"
                 placeholder="College of Computing"
                 disabled={!showAcademicFields}
+                class="placeholder-slate-400/50"
               />
-            </label>
+            </div>
 
-            <label>
-              <span>Program</span>
-              <input
+            <div>
+              <Label for="program" class="mb-2">Program</Label>
+              <Input
+                id="program"
                 bind:value={form.program}
                 autocomplete="off"
                 placeholder="BS Computer Science"
                 disabled={!showAcademicFields}
+                class="placeholder-slate-400/50"
               />
-            </label>
+            </div>
 
-            <label>
-              <span>Campus</span>
-              <input
+            <div>
+              <Label for="campus" class="mb-2">Campus</Label>
+              <Input
+                id="campus"
                 bind:value={form.campus}
                 autocomplete="off"
                 placeholder="Main Campus"
                 disabled={!showAcademicFields}
+                class="placeholder-slate-400/50"
               />
-            </label>
+            </div>
           </div>
         </div>
 
-        <div class="form-actions">
-          <button type="submit" disabled={isLoading}>
+        <div
+          class="form-actions mt-8 flex flex-col md:flex-row items-center gap-4"
+        >
+          <Button type="submit" disabled={isLoading} class="w-full md:w-auto">
             {isLoading ? "Creating account…" : "Create account"}
-          </button>
-          <p class="helper-text">
+          </Button>
+          <P size="sm" class="helper-text text-gray-500 dark:text-gray-400">
             {showAcademicFields
               ? "Academic users may include college, program, and campus details."
               : "Admin accounts skip academic profile fields."}
-          </p>
+          </P>
         </div>
       </form>
-    </section>
+    </Card>
 
-    <section class="panel list-panel">
-      <div class="panel-heading">
+    <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
+      <div
+        class="panel-heading mb-6 flex flex-col md:flex-row justify-between items-center gap-4"
+      >
         <div>
           <p class="eyebrow">Currently Provisioned</p>
-          <h2>Search accounts</h2>
+          <Heading tag="h2" class="text-xl font-bold">Search accounts</Heading>
         </div>
-        <label class="search-box">
-          <span class="sr-only">Search provisioned users</span>
-          <input
+        <div class="search-box w-full md:w-80">
+          <Search
             bind:value={searchQuery}
             placeholder="Search name, ID, role…"
+            size="md"
           />
-        </label>
+        </div>
       </div>
 
       {#if isFetching}
-        <div class="empty-state">Loading user directory…</div>
-      {:else if filteredUsers.length === 0}
-        <div class="empty-state">No users match the current search.</div>
-      {:else}
-        <div
-          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
-        >
-          <table
-            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
-          >
-            <thead>
-              <tr>
-                <th class="whitespace-nowrap">Name</th>
-                <th class="whitespace-nowrap">Username</th>
-                <th class="whitespace-nowrap">Role</th>
-                <th class="whitespace-nowrap">Academic Profile</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each filteredUsers as user (user.id)}
-                <tr>
-                  <td>
-                    <div class="primary-cell max-w-[200px] truncate">
-                      {user.name}
-                    </div>
-                    <div class="secondary-cell whitespace-nowrap">
-                      {user.id}
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap">
-                    <span class="username-pill">{user.username}</span>
-                  </td>
-                  <td class="whitespace-nowrap">
-                    <span class="role-pill" data-role={user.role}
-                      >{user.role}</span
-                    >
-                  </td>
-                  <td>
-                    <div class="profile-stack">
-                      <span class="max-w-[200px] truncate"
-                        >{user.college ?? "-"}</span
-                      >
-                      <span class="max-w-[200px] truncate"
-                        >{user.program ?? "-"}</span
-                      >
-                      <span class="max-w-[200px] truncate"
-                        >{user.campus ?? "-"}</span
-                      >
-                    </div>
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
+        <div class="empty-state py-8 text-center text-gray-500">
+          Loading user directory…
         </div>
+      {:else if filteredUsers.length === 0}
+        <div class="empty-state py-8 text-center text-gray-500">
+          No users match the current search.
+        </div>
+      {:else}
+        <Table
+          hoverable={true}
+          class="mt-4 shadow-none border border-slate-200 rounded-lg overflow-hidden"
+        >
+          <TableHead class="bg-gray-50 dark:bg-gray-800">
+            <TableHeadCell>Name</TableHeadCell>
+            <TableHeadCell>Username</TableHeadCell>
+            <TableHeadCell>Role</TableHeadCell>
+            <TableHeadCell>Academic Profile</TableHeadCell>
+          </TableHead>
+          <TableBody>
+            {#each filteredUsers as user (user.id)}
+              <TableBodyRow>
+                <TableBodyCell>
+                  <div
+                    class="primary-cell font-bold text-gray-900 dark:text-white truncate max-w-[200px]"
+                  >
+                    {user.name}
+                  </div>
+                  <div
+                    class="secondary-cell text-xs text-gray-500 dark:text-gray-400 truncate"
+                  >
+                    {user.id}
+                  </div>
+                </TableBodyCell>
+                <TableBodyCell>
+                  <Badge color="blue" class="rounded-full px-2 py-0.5"
+                    >{user.username}</Badge
+                  >
+                </TableBodyCell>
+                <TableBodyCell>
+                  <Badge
+                    color={user.role === "admin"
+                      ? "yellow"
+                      : user.role === "instructor"
+                        ? "purple"
+                        : "blue"}
+                    class="rounded-full px-2 py-0.5"
+                  >
+                    {user.role}
+                  </Badge>
+                </TableBodyCell>
+                <TableBodyCell>
+                  <div
+                    class="profile-stack text-sm text-gray-500 dark:text-gray-400 space-y-1"
+                  >
+                    <div class="truncate max-w-[200px]">
+                      {user.college ?? "-"}
+                    </div>
+                    <div class="truncate max-w-[200px]">
+                      {user.program ?? "-"}
+                    </div>
+                    <div class="truncate max-w-[200px]">
+                      {user.campus ?? "-"}
+                    </div>
+                  </div>
+                </TableBodyCell>
+              </TableBodyRow>
+            {/each}
+          </TableBody>
+        </Table>
       {/if}
-    </section>
+    </Card>
   </div>
 
-  <section class="panel history-panel">
-    <div class="panel-heading">
-      <div>
-        <p class="eyebrow">Session History</p>
-        <h2>Recently Created Accounts</h2>
-      </div>
+  <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
+    <div class="panel-heading mb-6">
+      <p class="eyebrow">Session History</p>
+      <Heading tag="h2" class="text-xl font-bold"
+        >Recently Created Accounts</Heading
+      >
     </div>
 
     {#if recentCreatedUsers.length === 0}
-      <div class="empty-state">
+      <div class="empty-state py-8 text-center text-gray-500">
         No accounts have been created during this session.
       </div>
     {:else}
-      <div class="history-grid">
+      <div
+        class="history-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
         {#each recentCreatedUsers as user (user.id)}
-          <article class="history-card">
-            <div class="history-top">
-              <strong>{user.name}</strong>
-              <span class="role-pill" data-role={user.role}>{user.role}</span>
+          <Card size="md" class="shadow-none border-slate-200 bg-gray-50/30">
+            <div class="history-top flex justify-between items-start mb-3">
+              <strong class="text-gray-900 dark:text-white">{user.name}</strong>
+              <Badge
+                color={user.role === "admin"
+                  ? "yellow"
+                  : user.role === "instructor"
+                    ? "purple"
+                    : "blue"}
+                class="rounded-full"
+              >
+                {user.role}
+              </Badge>
             </div>
-            <div class="history-username">{user.username}</div>
-            <div class="history-meta">
-              <span>{user.college ?? "No college"}</span>
-              <span>{user.program ?? "No program"}</span>
-              <span>{user.campus ?? "No campus"}</span>
+            <div
+              class="history-username text-primary-600 font-bold mb-3 break-all"
+            >
+              {user.username}
             </div>
-          </article>
+            <div
+              class="history-meta text-sm text-gray-500 dark:text-gray-400 space-y-1"
+            >
+              <div>{user.college ?? "No college"}</div>
+              <div>{user.program ?? "No program"}</div>
+              <div>{user.campus ?? "No campus"}</div>
+            </div>
+          </Card>
         {/each}
       </div>
     {/if}
-  </section>
+  </Card>
 </section>
 
 <style>
@@ -428,34 +508,6 @@
     max-width: 1280px;
     margin: 0 auto;
     padding: 1.5rem;
-    color: var(--text, #eef2ff);
-  }
-
-  .hero-card,
-  .panel {
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 1.5rem;
-    background: linear-gradient(
-      180deg,
-      rgba(15, 23, 42, 0.92),
-      rgba(3, 7, 18, 0.92)
-    );
-    box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
-    backdrop-filter: blur(16px);
-  }
-
-  .hero-card {
-    display: flex;
-    justify-content: space-between;
-    gap: 1.5rem;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .hero-card h1,
-  .panel h2 {
-    margin: 0.35rem 0 0;
-    font-size: clamp(1.55rem, 3vw, 2.4rem);
   }
 
   .eyebrow {
@@ -463,324 +515,7 @@
     font-size: 0.76rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #67e8f9;
+    color: #3b82f6;
     font-weight: 700;
-  }
-
-  .lede {
-    max-width: 62ch;
-    color: rgba(226, 232, 240, 0.78);
-    margin: 0.65rem 0 0;
-    line-height: 1.55;
-  }
-
-  .hero-stats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
-    gap: 0.75rem;
-    min-width: 280px;
-  }
-
-  .hero-stats > div {
-    padding: 0.95rem 1rem;
-    border-radius: 1rem;
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(148, 163, 184, 0.16);
-  }
-
-  .stat-value {
-    display: block;
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #f8fafc;
-  }
-
-  .stat-label {
-    display: block;
-    margin-top: 0.25rem;
-    color: rgba(226, 232, 240, 0.7);
-    font-size: 0.86rem;
-  }
-
-  .feedback {
-    margin: 0 0 1rem;
-    padding: 0.95rem 1rem;
-    border-radius: 1rem;
-    font-weight: 600;
-    border: 1px solid transparent;
-  }
-
-  .feedback[data-tone="success"] {
-    background: rgba(34, 197, 94, 0.14);
-    border-color: rgba(34, 197, 94, 0.35);
-    color: #bbf7d0;
-  }
-
-  .feedback[data-tone="error"] {
-    background: rgba(244, 63, 94, 0.14);
-    border-color: rgba(244, 63, 94, 0.35);
-    color: #fecdd3;
-  }
-
-  .admin-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    align-items: stretch;
-    margin-bottom: 1rem;
-  }
-
-  .panel {
-    padding: 1.25rem;
-  }
-
-  .panel-heading {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    align-items: start;
-    margin-bottom: 1rem;
-  }
-
-  .panel-badge {
-    padding: 0.45rem 0.75rem;
-    border-radius: 999px;
-    background: rgba(14, 165, 233, 0.12);
-    color: #bae6fd;
-    border: 1px solid rgba(14, 165, 233, 0.24);
-    font-size: 0.8rem;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .provision-form {
-    display: grid;
-    gap: 1.25rem;
-  }
-
-  .form-grid,
-  .academic-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-
-  .provision-form label,
-  .search-box {
-    display: grid;
-    gap: 0.45rem;
-  }
-
-  .provision-form span,
-  .search-box span {
-    font-size: 0.86rem;
-    color: rgba(226, 232, 240, 0.82);
-    font-weight: 600;
-  }
-
-  .provision-form input,
-  .provision-form select,
-  .search-box input {
-    width: 100%;
-    border-radius: 0.95rem;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    background: rgba(15, 23, 42, 0.88);
-    color: var(--text, #eef2ff);
-    padding: 0.85rem 0.95rem;
-  }
-
-  .provision-form input:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-
-  .conditional-fields {
-    display: grid;
-    gap: 0.85rem;
-    padding: 0.95rem;
-    border-radius: 1rem;
-    border: 1px dashed rgba(148, 163, 184, 0.18);
-    background: rgba(15, 23, 42, 0.38);
-  }
-
-  .conditional-fields[data-active="false"] {
-    opacity: 0.65;
-  }
-
-  .form-actions {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .form-actions button {
-    border: 0;
-    border-radius: 0.95rem;
-    padding: 0.95rem 1.15rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #38bdf8, #22c55e);
-    color: #08111f;
-    cursor: pointer;
-  }
-
-  .form-actions button:disabled {
-    cursor: wait;
-    opacity: 0.7;
-  }
-
-  .helper-text {
-    margin: 0;
-    font-size: 0.9rem;
-    color: rgba(226, 232, 240, 0.7);
-    line-height: 1.5;
-  }
-
-  .list-panel .panel-heading {
-    align-items: center;
-  }
-
-  .search-box {
-    min-width: min(100%, 280px);
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 740px;
-  }
-
-  thead {
-    background: rgba(15, 23, 42, 0.95);
-  }
-
-  th,
-  td {
-    padding: 0.9rem 1rem;
-    text-align: left;
-    vertical-align: top;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-  }
-
-  th {
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: rgba(226, 232, 240, 0.72);
-  }
-
-  .primary-cell {
-    font-weight: 700;
-    color: #f8fafc;
-  }
-
-  .secondary-cell {
-    margin-top: 0.25rem;
-    font-size: 0.82rem;
-    color: rgba(226, 232, 240, 0.55);
-    word-break: break-all;
-  }
-
-  .username-pill,
-  .role-pill {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.38rem 0.7rem;
-    font-size: 0.82rem;
-    font-weight: 700;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-  }
-
-  .username-pill {
-    background: rgba(56, 189, 248, 0.12);
-    color: #bae6fd;
-  }
-
-  .role-pill[data-role="student"] {
-    background: rgba(96, 165, 250, 0.12);
-    color: #bfdbfe;
-  }
-
-  .role-pill[data-role="instructor"] {
-    background: rgba(168, 85, 247, 0.12);
-    color: #e9d5ff;
-  }
-
-  .role-pill[data-role="admin"] {
-    background: rgba(251, 191, 36, 0.12);
-    color: #fde68a;
-  }
-
-  .profile-stack,
-  .history-meta {
-    display: grid;
-    gap: 0.2rem;
-    color: rgba(226, 232, 240, 0.76);
-    font-size: 0.86rem;
-  }
-
-  .history-panel {
-    margin-bottom: 0.5rem;
-  }
-
-  .history-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.85rem;
-  }
-
-  .history-card {
-    padding: 1rem;
-    border-radius: 1rem;
-    background: rgba(15, 23, 42, 0.78);
-    border: 1px solid rgba(148, 163, 184, 0.14);
-  }
-
-  .history-top {
-    display: flex;
-    align-items: start;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-
-  .history-top strong {
-    color: #f8fafc;
-  }
-
-  .history-username {
-    margin: 0.65rem 0;
-    color: #7dd3fc;
-    font-weight: 700;
-    word-break: break-word;
-  }
-
-  .empty-state {
-    padding: 1rem;
-    border-radius: 1rem;
-    background: rgba(15, 23, 42, 0.64);
-    color: rgba(226, 232, 240, 0.72);
-  }
-
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  @media (max-width: 900px) {
-    .hero-card,
-    .panel-heading {
-      flex-direction: column;
-    }
-
-    .hero-stats,
-    .admin-grid {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

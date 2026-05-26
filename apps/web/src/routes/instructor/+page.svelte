@@ -7,6 +7,7 @@
     type InstructorSectionsResponse,
   } from "$lib/api/client";
   import { authSession } from "$lib/stores/auth";
+  import { Button } from "flowbite-svelte";
 
   type InstructorSection = InstructorSectionsResponse["sections"][number];
   type InstructorRosterRow = InstructorSection["roster"][number] & {
@@ -355,13 +356,14 @@
                 <td class="whitespace-nowrap">
                   <div class="row-actions">
                     {#if !isLocked}
-                      <button
-                        type="button"
+                      <Button
+                        size="xs"
+                        class="px-3 py-1.5 font-medium"
                         onclick={() => void saveGrade(row)}
                         disabled={row.saveState === "saving"}
                       >
                         Save Grade
-                      </button>
+                      </Button>
                     {/if}
                     {#if row.saveMessage}
                       <span class="row-status" data-tone={row.saveState}>

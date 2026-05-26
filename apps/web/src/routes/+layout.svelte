@@ -4,11 +4,41 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { clearAuthSession, authSession } from "$lib/stores/auth";
+  import {
+    Navbar,
+    NavBrand,
+    NavHamburger,
+    Sidebar,
+    SidebarWrapper,
+    SidebarGroup,
+    SidebarItem,
+    Avatar,
+    Dropdown,
+    DropdownHeader,
+    DropdownDivider,
+    DropdownItem,
+    uiHelpers,
+  } from "flowbite-svelte";
+  import {
+    GridSolid,
+    UsersSolid,
+    BookOpenSolid,
+    ChartPieSolid,
+    LandmarkSolid,
+  } from "flowbite-svelte-icons";
   import "./layout.css";
 
   let { children } = $props();
 
   let session = $derived($authSession);
+  let activeUrl = $derived(page.url.pathname);
+
+  const sidebarUi = uiHelpers();
+  let isSidebarOpen = $state(false);
+
+  $effect(() => {
+    isSidebarOpen = sidebarUi.isOpen;
+  });
 
   function getRoleHome(role: string) {
     if (role === "admin") {
@@ -46,133 +76,110 @@
   <title>Course Enrollment System</title>
   <meta
     name="description"
-    content="Client-only course enrollment dashboard powered by Hono RPC"
+    content="Client-only course enrollment dashboard powered by Flowbite-Svelte"
   />
 </svelte:head>
 
-<div class="app-shell">
-  <header class="topbar">
-    <div class="brand-block">
-      <p class="eyebrow">Course Enrollment System</p>
-      <h1>Enrollment Portal</h1>
-    </div>
+<div class="antialiased bg-gray-50 dark:bg-gray-900">
+  {#if session}
+    <Navbar
+      fluid
+      class="fixed top-0 z-40 w-full border-b border-gray-200 dark:border-gray-700 bg-neutral-primary/90 backdrop-blur-sm"
+    >
+      <NavBrand href="/">
+        <span
+          class="self-center whitespace-nowrap text-xl font-semibold dark:text-white"
+        >
+          UniACES
+        </span>
+      </NavBrand>
+      <div class="flex items-center md:order-2">
+        <Avatar id="user-menu" src="" class="cursor-pointer" />
+        <NavHamburger onclick={sidebarUi.toggle} class="md:hidden" />
+      </div>
+      <Dropdown placement="bottom" triggeredBy="#user-menu" class="min-w-max">
+        <DropdownHeader>
+          <span class="block text-sm font-bold">{session.user.name}</span>
+          <span class="block text-sm font-medium">
+            {session.user.role}
+          </span>
+        </DropdownHeader>
+        <DropdownItem onclick={handleLogout}>Sign out</DropdownItem>
+      </Dropdown>
+    </Navbar>
 
-    {#if session}
-      {#if session.user.role === "admin"}
-        <nav aria-label="Primary navigation" class="nav-links desktop-nav">
-          <a
-            href={resolve("/admin/users")}
-            aria-current={page.url.pathname.startsWith("/admin/users")
-              ? "page"
-              : undefined}
-          >
-            User Management
-          </a>
-          <a
-            href={resolve("/admin/courses")}
-            aria-current={page.url.pathname.startsWith("/admin/courses")
-              ? "page"
-              : undefined}
-          >
-            Course Catalog
-          </a>
-          <a
-            href={resolve("/admin/sections")}
-            aria-current={page.url.pathname.startsWith("/admin/sections")
-              ? "page"
-              : undefined}
-          >
-            Section Scheduling
-          </a>
-        </nav>
+    <Sidebar
+      {activeUrl}
+      isOpen={isSidebarOpen}
+      closeSidebar={sidebarUi.close}
+      class="fixed start-0 top-0 z-30 h-screen w-64 pt-16 transition-transform md:translate-x-0"
+    >
+      <SidebarWrapper>
+        <SidebarGroup>
+          {#if session.user.role === "admin"}
+            <SidebarItem label="User Management" href={resolve("/admin/users")}>
+              {#snippet icon()}
+                <UsersSolid
+                  class="h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                />
+              {/snippet}
+            </SidebarItem>
+            <SidebarItem
+              label="Course Catalog"
+              href={resolve("/admin/courses")}
+            >
+              {#snippet icon()}
+                <BookOpenSolid
+                  class="h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                />
+              {/snippet}
+            </SidebarItem>
+            <SidebarItem
+              label="Section Scheduling"
+              href={resolve("/admin/sections")}
+            >
+              {#snippet icon()}
+                <LandmarkSolid
+                  class="h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                />
+              {/snippet}
+            </SidebarItem>
+          {:else if session.user.role === "student"}
+            <SidebarItem label="Enrollments" href={resolve("/student")}>
+              {#snippet icon()}
+                <GridSolid
+                  class="h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                />
+              {/snippet}
+            </SidebarItem>
+            <SidebarItem label="Grade Sheets" href="#">
+              {#snippet icon()}
+                <ChartPieSolid
+                  class="h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                />
+              {/snippet}
+            </SidebarItem>
+          {:else}
+            <SidebarItem label="Grading Ledger" href={resolve("/instructor")}>
+              {#snippet icon()}
+                <GridSolid
+                  class="h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                />
+              {/snippet}
+            </SidebarItem>
+          {/if}
+        </SidebarGroup>
+      </SidebarWrapper>
+    </Sidebar>
 
-        <nav aria-label="Primary navigation" class="nav-links mobile-nav">
-          <a
-            href={resolve("/admin/users")}
-            aria-current={page.url.pathname.startsWith("/admin/users")
-              ? "page"
-              : undefined}
-          >
-            User Management
-          </a>
-          <a
-            href={resolve("/admin/courses")}
-            aria-current={page.url.pathname.startsWith("/admin/courses")
-              ? "page"
-              : undefined}
-          >
-            Course Catalog
-          </a>
-          <a
-            href={resolve("/admin/sections")}
-            aria-current={page.url.pathname.startsWith("/admin/sections")
-              ? "page"
-              : undefined}
-          >
-            Section Scheduling
-          </a>
-        </nav>
-      {:else if session.user.role === "student"}
-        <nav aria-label="Primary navigation" class="nav-links desktop-nav">
-          <a
-            href={resolve("/student")}
-            aria-current={page.url.pathname.startsWith("/student")
-              ? "page"
-              : undefined}
-          >
-            My Enrollment Portal
-          </a>
-        </nav>
-
-        <nav aria-label="Primary navigation" class="nav-links mobile-nav">
-          <a
-            href={resolve("/student")}
-            aria-current={page.url.pathname.startsWith("/student")
-              ? "page"
-              : undefined}
-          >
-            My Enrollment Portal
-          </a>
-        </nav>
-      {:else}
-        <nav aria-label="Primary navigation" class="nav-links desktop-nav">
-          <a
-            href={resolve("/instructor")}
-            aria-current={page.url.pathname.startsWith("/instructor")
-              ? "page"
-              : undefined}
-          >
-            Faculty Grading Ledger
-          </a>
-        </nav>
-
-        <nav aria-label="Primary navigation" class="nav-links mobile-nav">
-          <a
-            href={resolve("/instructor")}
-            aria-current={page.url.pathname.startsWith("/instructor")
-              ? "page"
-              : undefined}
-          >
-            Faculty Grading Ledger
-          </a>
-        </nav>
-      {/if}
-
-      <button type="button" class="logout-button" onclick={handleLogout}>
-        Logout
-      </button>
-    {:else}
-      <button
-        type="button"
-        class="login-button"
-        onclick={() => goto(resolve("/login"))}
-      >
-        Login
-      </button>
-    {/if}
-  </header>
-
-  <main>
-    {@render children()}
-  </main>
+    <main class="min-h-screen pt-16 md:ml-64">
+      <div class="p-4">
+        {@render children()}
+      </div>
+    </main>
+  {:else}
+    <main class="min-h-screen">
+      {@render children()}
+    </main>
+  {/if}
 </div>

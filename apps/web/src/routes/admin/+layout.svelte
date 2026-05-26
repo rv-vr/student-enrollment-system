@@ -18,13 +18,6 @@
   });
 </script>
 
-<div class="admin-shell">
-  <header class="admin-header">
-    <h2>Admin Dashboard</h2>
-    <p class="muted">Administrative tools and system configuration.</p>
-  </header>
-
-  <main class="admin-content">
-    {@render children()}
-  </main>
-</div>
+<main class="admin-content">
+  {@render children()}
+</main>

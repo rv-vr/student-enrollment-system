@@ -348,7 +348,7 @@
   <header class="hero">
     <div>
       <p class="eyebrow">Milestone 4</p>
-      <h1>Student Enrollment Cart</h1>
+      <h1>Enrollments</h1>
       <p class="lede">
         Browse live class offerings on the left, then stack your active schedule
         on the right.
@@ -385,17 +385,99 @@
     </div>
   {/if}
 
-  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full">
-    <div class="xl:col-span-7 space-y-4 w-full">
-      <section class="panel offerings-panel">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Available Class Offerings</p>
-            <h2>Live sections</h2>
-          </div>
-          <span class="panel-chip">{sections.length} offerings</span>
+  <div class="space-y-6 w-full">
+    <section class="panel offerings-panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Available Class Offerings</p>
+          <h2>Live sections</h2>
         </div>
+        <span class="panel-chip">{sections.length} offerings</span>
+      </div>
 
+      <div
+        class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+      >
+        <table
+          class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+        >
+          <thead>
+            <tr>
+              <th scope="col" class="whitespace-nowrap">Course</th>
+              <th scope="col" class="whitespace-nowrap">Instructor</th>
+              <th scope="col" class="whitespace-nowrap">Schedule</th>
+              <th scope="col" class="whitespace-nowrap">Seats</th>
+              <th scope="col" class="whitespace-nowrap">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each sections as section (section.id)}
+              <tr>
+                <td class="whitespace-nowrap">
+                  <div class="course-block">
+                    <strong class="whitespace-nowrap"
+                      >{section.courseCode}</strong
+                    >
+                    <span class="max-w-[200px] truncate"
+                      >{section.courseTitle}</span
+                    >
+                    <small>{section.sectionName}</small>
+                  </div>
+                </td>
+                <td class="whitespace-nowrap">{section.instructorName}</td>
+                <td>
+                  <div class="schedule-list">
+                    {#each section.scheduleArray as scheduleItem, index (index)}
+                      <span>{formatSchedule([scheduleItem])}</span>
+                    {/each}
+                    {#if section.scheduleArray.length === 0}
+                      <span>TBA</span>
+                    {/if}
+                  </div>
+                </td>
+                <td class="whitespace-nowrap">
+                  <span class="seat-pill">
+                    {section.remainingSeats} / {section.capacity}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap">
+                  <button
+                    type="button"
+                    class="enroll-button"
+                    onclick={() => handleEnroll(section.id)}
+                    disabled={isLoading || section.remainingSeats <= 0}
+                  >
+                    {#if section.remainingSeats <= 0}
+                      Full
+                    {:else if isLoading}
+                      Enrolling…
+                    {:else}
+                      Enroll
+                    {/if}
+                  </button>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel schedule-panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Classes</p>
+          <h2>Enrollments</h2>
+        </div>
+        <span class="panel-chip">{myEnrollments.length} records</span>
+      </div>
+
+      {#if myEnrollments.length === 0}
+        <div class="empty-state">
+          <h3>No active enrollments</h3>
+          <p>Select a section from the left to start building your schedule.</p>
+        </div>
+      {:else}
         <div
           class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
         >
@@ -405,154 +487,66 @@
             <thead>
               <tr>
                 <th scope="col" class="whitespace-nowrap">Course</th>
-                <th scope="col" class="whitespace-nowrap">Instructor</th>
-                <th scope="col" class="whitespace-nowrap">Schedule</th>
-                <th scope="col" class="whitespace-nowrap">Seats</th>
-                <th scope="col" class="whitespace-nowrap">Action</th>
+                <th scope="col" class="whitespace-nowrap">Section</th>
+                <th scope="col" class="whitespace-nowrap">Status</th>
+                <th scope="col" class="whitespace-nowrap">Final Grade</th>
               </tr>
             </thead>
             <tbody>
-              {#each sections as section (section.id)}
+              {#each myEnrollments as enrollment (enrollment.id)}
                 <tr>
                   <td class="whitespace-nowrap">
                     <div class="course-block">
                       <strong class="whitespace-nowrap"
-                        >{section.courseCode}</strong
+                        >{enrollment.courseCode}</strong
                       >
                       <span class="max-w-[200px] truncate"
-                        >{section.courseTitle}</span
+                        >{enrollment.courseTitle}</span
                       >
-                      <small>{section.sectionName}</small>
                     </div>
                   </td>
-                  <td class="whitespace-nowrap">{section.instructorName}</td>
                   <td>
-                    <div class="schedule-list">
-                      {#each section.scheduleArray as scheduleItem, index (index)}
+                    <div>
+                      {enrollment.sectionName} · {enrollment.instructorName}
+                    </div>
+                    <div class="schedule-list compact">
+                      {#each enrollment.scheduleArray as scheduleItem, index (index)}
                         <span>{formatSchedule([scheduleItem])}</span>
                       {/each}
-                      {#if section.scheduleArray.length === 0}
+                      {#if enrollment.scheduleArray.length === 0}
                         <span>TBA</span>
                       {/if}
                     </div>
                   </td>
                   <td class="whitespace-nowrap">
-                    <span class="seat-pill">
-                      {section.remainingSeats} / {section.capacity}
+                    <span
+                      class="status-pill"
+                      data-tone={toStatusTone(enrollment.status)}
+                    >
+                      {toStatusLabel(enrollment.status)}
                     </span>
                   </td>
                   <td class="whitespace-nowrap">
-                    <button
-                      type="button"
-                      class="enroll-button"
-                      onclick={() => handleEnroll(section.id)}
-                      disabled={isLoading || section.remainingSeats <= 0}
-                    >
-                      {#if section.remainingSeats <= 0}
-                        Full
-                      {:else if isLoading}
-                        Enrolling…
-                      {:else}
-                        Enroll
-                      {/if}
-                    </button>
+                    {#if hasFinalGrade(enrollment.status)}
+                      <div class="grade-cell finalized-grade">
+                        <span class="grade-value"
+                          >{enrollment.grade ?? "-"}</span
+                        >
+                        <span class="grade-remark"
+                          >{enrollment.remark ?? "No remark"}</span
+                        >
+                      </div>
+                    {:else}
+                      <span class="grade-value">-</span>
+                    {/if}
                   </td>
                 </tr>
               {/each}
             </tbody>
           </table>
         </div>
-      </section>
-    </div>
-
-    <div class="xl:col-span-5 space-y-4 w-full">
-      <section class="panel schedule-panel">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">My Schedule Matrix</p>
-            <h2>My Schedule / Enrollments</h2>
-          </div>
-          <span class="panel-chip">{myEnrollments.length} records</span>
-        </div>
-
-        {#if myEnrollments.length === 0}
-          <div class="empty-state">
-            <h3>No active enrollments</h3>
-            <p>
-              Select a section from the left to start building your schedule.
-            </p>
-          </div>
-        {:else}
-          <div
-            class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
-          >
-            <table
-              class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
-            >
-              <thead>
-                <tr>
-                  <th scope="col" class="whitespace-nowrap">Course</th>
-                  <th scope="col" class="whitespace-nowrap">Section</th>
-                  <th scope="col" class="whitespace-nowrap">Status</th>
-                  <th scope="col" class="whitespace-nowrap">Final Grade</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each myEnrollments as enrollment (enrollment.id)}
-                  <tr>
-                    <td class="whitespace-nowrap">
-                      <div class="course-block">
-                        <strong class="whitespace-nowrap"
-                          >{enrollment.courseCode}</strong
-                        >
-                        <span class="max-w-[200px] truncate"
-                          >{enrollment.courseTitle}</span
-                        >
-                      </div>
-                    </td>
-                    <td>
-                      <div>
-                        {enrollment.sectionName} · {enrollment.instructorName}
-                      </div>
-                      <div class="schedule-list compact">
-                        {#each enrollment.scheduleArray as scheduleItem, index (index)}
-                          <span>{formatSchedule([scheduleItem])}</span>
-                        {/each}
-                        {#if enrollment.scheduleArray.length === 0}
-                          <span>TBA</span>
-                        {/if}
-                      </div>
-                    </td>
-                    <td class="whitespace-nowrap">
-                      <span
-                        class="status-pill"
-                        data-tone={toStatusTone(enrollment.status)}
-                      >
-                        {toStatusLabel(enrollment.status)}
-                      </span>
-                    </td>
-                    <td class="whitespace-nowrap">
-                      {#if hasFinalGrade(enrollment.status)}
-                        <div class="grade-cell finalized-grade">
-                          <span class="grade-value"
-                            >{enrollment.grade ?? "-"}</span
-                          >
-                          <span class="grade-remark"
-                            >{enrollment.remark ?? "No remark"}</span
-                          >
-                        </div>
-                      {:else}
-                        <span class="grade-value">-</span>
-                      {/if}
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        {/if}
-      </section>
-    </div>
+      {/if}
+    </section>
   </div>
 </section>
 
