@@ -15,5 +15,13 @@ export default defineConfig(({ mode }) => {
     plugins: [cloudflare()],
     envDir: repoRoot,
     server: { port: 8787 },
+    resolve: {
+      tsconfigPaths: true,
+    },
+    build: {
+      rollupOptions: {
+        input: "./src/index.ts",
+      },
+    },
   };
 });

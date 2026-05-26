@@ -1,0 +1,9 @@
+# apps/api/.gitignore
+node_modules
+dist
+.turbo
+.wrangler
+*.db
+*.sqlite
+.env
+.dev.vars
