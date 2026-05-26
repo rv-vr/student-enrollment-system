@@ -78,6 +78,14 @@
       return "Completed";
     }
 
+    if (status === "requested") {
+      return "Pending Approval";
+    }
+
+    if (status === "denied") {
+      return "Denied";
+    }
+
     return status;
   }
 
@@ -88,6 +96,14 @@
 
     if (status === "ongoing") {
       return "in-progress";
+    }
+
+    if (status === "requested") {
+      return "pending";
+    }
+
+    if (status === "denied") {
+      return "denied";
     }
 
     return "default";
@@ -278,7 +294,7 @@
 
       feedback = {
         tone: "success",
-        message: `Enrolled in ${targetSection.courseCode} ${targetSection.sectionName}.`,
+        message: `Registration request submitted for ${targetSection.courseCode} ${targetSection.sectionName}. Pending admin approval.`,
       };
     } catch (error) {
       feedback = {
@@ -292,7 +308,10 @@
 
   let totalCredits = $derived(
     myEnrollments
-      .filter((enrollment) => enrollment.status === "ongoing")
+      .filter(
+        (enrollment) =>
+          enrollment.status === "ongoing" || enrollment.status === "requested",
+      )
       .reduce((sum, enrollment) => sum + enrollment.credits, 0),
   );
 
@@ -703,6 +722,18 @@
     background: rgba(28, 136, 82, 0.12);
     border: 1px solid rgba(28, 136, 82, 0.22);
     color: #18613d;
+  }
+
+  .status-pill[data-tone="pending"] {
+    background: rgba(255, 205, 110, 0.12);
+    border: 1px solid rgba(255, 205, 110, 0.22);
+    color: #8c6d1f;
+  }
+
+  .status-pill[data-tone="denied"] {
+    background: rgba(197, 63, 63, 0.12);
+    border: 1px solid rgba(197, 63, 63, 0.22);
+    color: #9f2d2d;
   }
 
   table {

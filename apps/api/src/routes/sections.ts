@@ -5,12 +5,56 @@ import { createMiddleware } from "hono/factory";
 import { Hono } from "hono";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { courses, enrollments, sections, users } from "../db/schema";
+import {
+  courses,
+  enrollments,
+  sections,
+  users,
+  type SectionScheduleEntry,
+} from "../db/schema";
 import { sectionCreateSchema, sectionValidationHook } from "../validators";
+import { schedulesOverlap } from "../utils/time";
 
 type CourseRow = typeof courses.$inferSelect;
 type SectionRow = typeof sections.$inferSelect;
 type UserRow = typeof users.$inferSelect;
+
+function parseJsonArray(value: unknown) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [] as unknown[];
+
+  try {
+    const parsed = JSON.parse(String(value));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [] as unknown[];
+  }
+}
+
+function normalizeScheduleSlots(value: unknown): SectionScheduleEntry[] {
+  return parseJsonArray(value)
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+
+      const slot = entry as Partial<SectionScheduleEntry>;
+
+      if (typeof slot.day !== "string" || typeof slot.time !== "string") {
+        return null;
+      }
+
+      return {
+        day: slot.day.trim(),
+        time: slot.time.trim(),
+        type: typeof slot.type === "string" ? slot.type.trim() : "",
+      } satisfies SectionScheduleEntry;
+    })
+    .filter(
+      (slot): slot is SectionScheduleEntry =>
+        slot !== null && Boolean(slot.day && slot.time),
+    );
+}
 
 type SectionCatalogRow = SectionRow & {
   courseCode: string;
@@ -19,19 +63,6 @@ type SectionCatalogRow = SectionRow & {
   enrolledCount: number;
   remainingSeats: number;
 };
-
-const requireAdmin = createMiddleware<{
-  Bindings: AppBindings;
-  Variables: AppVariables;
-}>(async (c, next) => {
-  const user = c.get("user");
-
-  if (user.role !== "admin") {
-    return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
-  }
-
-  await next();
-});
 
 function toSectionCatalogRow(
   sectionRow: SectionRow,
@@ -48,6 +79,19 @@ function toSectionCatalogRow(
     remainingSeats: Math.max(sectionRow.capacity - enrolledCount, 0),
   };
 }
+
+const requireAdmin = createMiddleware<{
+  Bindings: AppBindings;
+  Variables: AppVariables;
+}>(async (c, next) => {
+  const user = c.get("user");
+
+  if (user.role !== "admin") {
+    return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+  }
+
+  await next();
+});
 
 export const sectionsRoutes = new Hono<{
   Bindings: AppBindings;
@@ -124,6 +168,40 @@ sectionsRoutes.post(
         },
         404,
       );
+    }
+
+    // 1. VALIDATE SCHEDULE OVERLAP WITHIN THE SAME SECTION NAME
+    const incomingSlots = normalizeScheduleSlots(scheduleArray);
+
+    if (incomingSlots.length > 0) {
+      // Find other sections with the same name
+      const sameNamedSections = await db
+        .select()
+        .from(sections)
+        .where(eq(sections.sectionName, sectionName))
+        .all();
+
+      for (const existingSection of sameNamedSections) {
+        const existingSlots = normalizeScheduleSlots(
+          existingSection.scheduleArray,
+        );
+
+        for (const incomingSlot of incomingSlots) {
+          const conflict = existingSlots.find((existingSlot) =>
+            schedulesOverlap(incomingSlot, existingSlot),
+          );
+
+          if (conflict) {
+            return c.json(
+              {
+                success: false,
+                error: `Schedule Conflict: This section already has a subject scheduled during this timeslot (${conflict.day} ${conflict.time}).`,
+              },
+              400,
+            );
+          }
+        }
+      }
     }
 
     const sectionId = crypto.randomUUID();

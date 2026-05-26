@@ -39,7 +39,9 @@ export const API_BASE = dev
 
 const rpcClient = hc<AppType>(API_BASE, {
   headers: () => getAuthHeaders(),
-}) as any;
+});
+
+type GradePatchFn = (typeof rpcClient.enrollments)[":id"]["grade"]["$patch"];
 
 const studentNotificationsGet = rpcClient.students[":id"].notifications.$get;
 
@@ -57,7 +59,7 @@ export const client = {
         rpcClient.enrollments.$post(...args),
       ":id": {
         grade: {
-          $patch: (...args: any[]) =>
+          $patch: (...args: Parameters<GradePatchFn>) =>
             rpcClient.enrollments[":id"].grade.$patch(...args),
         },
       },
@@ -224,6 +226,22 @@ export async function decideAdminRequest(
     await rpcClient.admin.requests[":id"].decide.$patch({
       param: { id: enrollmentId },
       json: { action },
+    }),
+  );
+}
+
+export async function approveAdminEnrollment(enrollmentId: string) {
+  return readJson<MutationResponse>(
+    await rpcClient.admin.enrollments[":id"].approve.$patch({
+      param: { id: enrollmentId },
+    }),
+  );
+}
+
+export async function denyAdminEnrollment(enrollmentId: string) {
+  return readJson<MutationResponse>(
+    await rpcClient.admin.enrollments[":id"].deny.$patch({
+      param: { id: enrollmentId },
     }),
   );
 }

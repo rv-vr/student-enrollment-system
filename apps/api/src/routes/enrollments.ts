@@ -18,6 +18,8 @@ import {
   sectionEnrollSchema,
 } from "../validators";
 
+import { schedulesOverlap } from "../utils/time";
+
 type EnrollmentRow = typeof enrollments.$inferSelect;
 type CourseRow = typeof courses.$inferSelect;
 type SectionRow = typeof sections.$inferSelect;
@@ -48,7 +50,11 @@ function normalizeCourseCodeList(value: unknown) {
 
 function isSeatOccupyingStatus(status: EnrollmentRow["status"]) {
   return (
-    status === "ongoing" || status === "completed" || status === "finalized"
+    status === "ongoing" ||
+    status === "completed" ||
+    status === "finalized" ||
+    status === "requested" ||
+    status === "pending"
   );
 }
 
@@ -75,85 +81,6 @@ function normalizeScheduleSlots(value: unknown): SectionScheduleEntry[] {
       (slot): slot is SectionScheduleEntry =>
         slot !== null && Boolean(slot.day && slot.time),
     );
-}
-
-function parseClockTime(value: string) {
-  const normalized = value.trim().toUpperCase();
-  const match = normalized.match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/);
-
-  if (!match) {
-    return null;
-  }
-
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  const meridiem = match[3];
-
-  if (
-    !Number.isInteger(hour) ||
-    !Number.isInteger(minute) ||
-    minute < 0 ||
-    minute > 59
-  ) {
-    return null;
-  }
-
-  if (!meridiem) {
-    if (hour < 0 || hour > 23) {
-      return null;
-    }
-
-    return hour * 60 + minute;
-  }
-
-  if (hour < 1 || hour > 12) {
-    return null;
-  }
-
-  let normalizedHour = hour % 12;
-
-  if (meridiem === "PM") {
-    normalizedHour += 12;
-  }
-
-  return normalizedHour * 60 + minute;
-}
-
-function parseTimeRange(value: string) {
-  const [startValue, endValue] = value.split(/\s*-\s*/);
-
-  if (!startValue || !endValue) {
-    return null;
-  }
-
-  const start = parseClockTime(startValue);
-  const end = parseClockTime(endValue);
-
-  if (start === null || end === null || start >= end) {
-    return null;
-  }
-
-  return { start, end };
-}
-
-function schedulesOverlap(
-  leftSlot: SectionScheduleEntry,
-  rightSlot: SectionScheduleEntry,
-) {
-  if (
-    leftSlot.day.trim().toLowerCase() !== rightSlot.day.trim().toLowerCase()
-  ) {
-    return false;
-  }
-
-  const leftRange = parseTimeRange(leftSlot.time);
-  const rightRange = parseTimeRange(rightSlot.time);
-
-  if (!leftRange || !rightRange) {
-    return false;
-  }
-
-  return leftRange.start < rightRange.end && rightRange.start < leftRange.end;
 }
 
 function normalizeGradeInput(value: unknown) {
@@ -391,11 +318,11 @@ enrollmentsRoutes.post(
       .insert(enrollments)
       .values({
         id: enrollmentId,
-        status: "ongoing",
+        status: "requested",
         courseId: sectionRow.courseId,
         sectionId: sectionRow.id,
         userId: user.id,
-        dateEnrolled: timestamp,
+        dateEnrolled: null,
         dateRequested: timestamp,
         grade: null,
         remark: null,

@@ -254,7 +254,7 @@ adminRoutes.get("/requests", async (c) => {
   const pending = await db
     .select()
     .from(enrollments)
-    .where(eq(enrollments.status, "pending"))
+    .where(eq(enrollments.status, "requested"))
     .all();
 
   const payload = await Promise.all(
@@ -280,6 +280,98 @@ adminRoutes.get("/requests", async (c) => {
 
   return c.json({ requests: payload });
 });
+
+adminRoutes.patch(
+  "/enrollments/:id/approve",
+  zValidator("param", enrollmentIdParamSchema, enrollmentValidationHook),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    const enrollmentRow = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.id, id))
+      .get();
+
+    if (!enrollmentRow) {
+      return c.json({ message: "Enrollment not found" }, 404);
+    }
+
+    if (enrollmentRow.status !== "requested") {
+      return c.json({ message: "Enrollment is not in requested state" }, 400);
+    }
+
+    const sectionRow = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, enrollmentRow.sectionId))
+      .get();
+
+    if (!sectionRow) {
+      return c.json({ message: "Section not found" }, 404);
+    }
+
+    const activeEnrollments = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.sectionId, sectionRow.id))
+      .all();
+
+    const activeSeatCount = activeEnrollments.filter(
+      (row) =>
+        row.status === "ongoing" ||
+        row.status === "completed" ||
+        row.status === "finalized",
+    ).length;
+
+    if (activeSeatCount >= sectionRow.capacity) {
+      return c.json({ message: "Section is full" }, 400);
+    }
+
+    const timestamp = new Date().toISOString();
+
+    await db
+      .update(enrollments)
+      .set({
+        status: "ongoing",
+        dateEnrolled: timestamp,
+      })
+      .where(eq(enrollments.id, id))
+      .run();
+
+    return c.json({ message: "Enrollment approved", id, status: "ongoing" });
+  },
+);
+
+adminRoutes.patch(
+  "/enrollments/:id/deny",
+  zValidator("param", enrollmentIdParamSchema, enrollmentValidationHook),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    const enrollmentRow = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.id, id))
+      .get();
+
+    if (!enrollmentRow) {
+      return c.json({ message: "Enrollment not found" }, 404);
+    }
+
+    await db
+      .update(enrollments)
+      .set({
+        status: "denied",
+      })
+      .where(eq(enrollments.id, id))
+      .run();
+
+    return c.json({ message: "Enrollment denied", id, status: "denied" });
+  },
+);
 
 adminRoutes.patch(
   "/requests/:id/decide",
