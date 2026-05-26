@@ -73,7 +73,10 @@ function buildEnrollmentViewRow(
 
 function getOpenSeatCount(rows: EnrollmentRow[]) {
   return rows.filter(
-    (row) => row.status === "ongoing" || row.status === "completed",
+    (row) =>
+      row.status === "ongoing" ||
+      row.status === "completed" ||
+      row.status === "finalized",
   ).length;
 }
 

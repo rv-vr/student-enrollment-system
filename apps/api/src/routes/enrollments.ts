@@ -46,6 +46,10 @@ function normalizeCourseCodeList(value: unknown) {
     .filter((entry) => entry.length > 0);
 }
 
+function isSeatOccupyingStatus(status: EnrollmentRow["status"]) {
+  return status === "ongoing" || status === "completed" || status === "finalized";
+}
+
 function normalizeScheduleSlots(value: unknown): SectionScheduleEntry[] {
   return parseJsonArray(value)
     .map((entry) => {
@@ -231,9 +235,7 @@ function buildEnrollmentViewRow(
 }
 
 function getActiveSeatCount(rows: EnrollmentRow[]) {
-  return rows.filter(
-    (row) => row.status === "ongoing" || row.status === "completed",
-  ).length;
+  return rows.filter((row) => isSeatOccupyingStatus(row.status)).length;
 }
 
 export const enrollmentsRoutes = new Hono<{
@@ -298,8 +300,8 @@ enrollmentsRoutes.post(
       .where(eq(enrollments.sectionId, sectionId))
       .all();
 
-    const activeSeatCount = activeEnrollments.filter(
-      (row) => row.status === "ongoing" || row.status === "completed",
+    const activeSeatCount = activeEnrollments.filter((row) =>
+      isSeatOccupyingStatus(row.status),
     ).length;
 
     if (activeSeatCount >= sectionRow.capacity) {
@@ -343,20 +345,19 @@ enrollmentsRoutes.post(
 
     if (requiredPrerequisites.length > 0) {
       const completedHistory = await db
-        .select({ courseCode: courses.id })
+        .select({ courseCode: courses.id, status: enrollments.status })
         .from(enrollments)
         .innerJoin(sections, eq(enrollments.sectionId, sections.id))
         .innerJoin(courses, eq(sections.courseId, courses.id))
-        .where(
-          and(
-            eq(enrollments.userId, user.id),
-            eq(enrollments.status, "completed"),
-          ),
-        )
+        .where(eq(enrollments.userId, user.id))
         .all();
 
       const completedCourseCodes = new Set(
-        completedHistory.map((row) => row.courseCode.toUpperCase()),
+        completedHistory
+          .filter(
+            (row) => row.status === "completed" || row.status === "finalized",
+          )
+          .map((row) => row.courseCode.toUpperCase()),
       );
       const missingPrerequisites = requiredPrerequisites.filter(
         (courseCode) => !completedCourseCodes.has(courseCode),

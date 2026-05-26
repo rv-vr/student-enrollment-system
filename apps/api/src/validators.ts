@@ -97,6 +97,7 @@ export const enrollmentStatusSchema = z.enum([
   "dropped",
   "pending",
   "ongoing",
+  "finalized",
 ]);
 
 export const enrollmentRecordSchema = z.object({

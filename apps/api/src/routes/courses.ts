@@ -37,7 +37,10 @@ const requireAdmin = createMiddleware<{
 
 function getActiveEnrollmentCount(rows: EnrollmentRow[]) {
   return rows.filter(
-    (row) => row.status === "ongoing" || row.status === "completed",
+    (row) =>
+      row.status === "ongoing" ||
+      row.status === "completed" ||
+      row.status === "finalized",
   ).length;
 }
 
@@ -63,7 +66,11 @@ async function loadCourseCatalog(db: ReturnType<typeof drizzle>) {
   const counts = new Map<string, number>();
 
   for (const row of enrollmentRows) {
-    if (row.status !== "ongoing" && row.status !== "completed") {
+    if (
+      row.status !== "ongoing" &&
+      row.status !== "completed" &&
+      row.status !== "finalized"
+    ) {
       continue;
     }
 

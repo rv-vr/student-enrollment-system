@@ -104,7 +104,7 @@ studentsRoutes.get(
     );
 
     const completedCourses = enrollRows
-      .filter((row) => row.status === "completed")
+      .filter((row) => row.status === "completed" || row.status === "finalized")
       .map((row) => row.courseId);
 
     return c.json({ student, completedCourses, enrollments: enrollmentsView });

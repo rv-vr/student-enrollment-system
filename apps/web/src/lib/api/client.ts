@@ -152,6 +152,14 @@ export async function getInstructorClasses() {
   );
 }
 
+export async function finalizeInstructorSection(sectionId: string) {
+  return readJson<{ message: string; sectionId: string }>(
+    await rpcClient.instructor.sections[":id"].finalize.$post({
+      param: { id: String(sectionId) },
+    }),
+  );
+}
+
 export async function getAdminRequests() {
   return readJson<AdminRequestsResponse>(await rpcClient.admin.requests.$get());
 }

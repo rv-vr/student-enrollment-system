@@ -1,7 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import { client, type InstructorSectionsResponse } from "$lib/api/client";
+  import {
+    client,
+    finalizeInstructorSection,
+    type InstructorSectionsResponse,
+  } from "$lib/api/client";
   import { authSession } from "$lib/stores/auth";
 
   type InstructorSection = InstructorSectionsResponse["sections"][number];
@@ -22,10 +26,16 @@
   let selectedSectionId = $state("");
   let roster = $state<InstructorRosterRow[]>([]);
   let feedback = $state<FeedbackState | null>(null);
+  let finalizing = $state(false);
 
   let bootstrappedUserId = $state<string | null>(null);
   let lastLoadedSectionId = $state("");
   let requestVersion = 0;
+
+  const isLocked = $derived(roster.some((row) => row.status === "finalized"));
+  const selectedSection = $derived(
+    assignedSections.find((section) => section.section.id === selectedSectionId) ?? null,
+  );
 
   function toMessage(error: unknown, fallback: string) {
     if (error instanceof Error) {
@@ -41,6 +51,15 @@
       draftGrade:
         entry.grade === null || entry.grade === undefined ? "" : String(entry.grade),
       draftRemark: entry.remark ?? "",
+      saveState: "idle",
+      saveMessage: "",
+    }));
+  }
+
+  function lockRoster() {
+    roster = roster.map((row) => ({
+      ...row,
+      status: "finalized",
       saveState: "idle",
       saveMessage: "",
     }));
@@ -111,6 +130,10 @@
   }
 
   async function saveGrade(row: InstructorRosterRow) {
+    if (isLocked) {
+      return;
+    }
+
     const grade = row.draftGrade.trim() === "" ? null : row.draftGrade.trim();
     const remark = row.draftRemark.trim() === "" ? null : row.draftRemark.trim();
 
@@ -179,6 +202,36 @@
     }
   }
 
+  async function finalizeLedger() {
+    if (!selectedSectionId || finalizing || isLocked) {
+      return;
+    }
+
+    finalizing = true;
+    feedback = null;
+
+    try {
+      const response = await finalizeInstructorSection(selectedSectionId);
+
+      if (!response) {
+        throw new Error("Unable to finalize ledger.");
+      }
+
+      lockRoster();
+      feedback = {
+        tone: "success",
+        message: "Ledger finalized. Grades are now read-only.",
+      };
+    } catch (error) {
+      feedback = {
+        tone: "error",
+        message: toMessage(error, "Unable to finalize ledger."),
+      };
+    } finally {
+      finalizing = false;
+    }
+  }
+
   $effect(() => {
     const currentSession = session;
 
@@ -218,6 +271,12 @@
 </svelte:head>
 
 <section class="instructor-page">
+  {#if isLocked}
+    <div class="locked-banner" role="status">
+      <strong>⚠️ This ledger has been finalized and submitted to the registrar. Grades are read-only.</strong>
+    </div>
+  {/if}
+
   <div class="toolbar">
     <label for="section-select">Section</label>
     <select id="section-select" bind:value={selectedSectionId}>
@@ -257,20 +316,22 @@
                 <td>{row.studentId}</td>
                 <td>{row.student?.name ?? "Unknown student"}</td>
                 <td>
-                  <input type="text" bind:value={row.draftGrade} />
+                  <input type="text" bind:value={row.draftGrade} disabled={isLocked} />
                 </td>
                 <td>
-                  <input type="text" bind:value={row.draftRemark} />
+                  <input type="text" bind:value={row.draftRemark} disabled={isLocked} />
                 </td>
                 <td>
                   <div class="row-actions">
-                    <button
-                      type="button"
-                      onclick={() => void saveGrade(row)}
-                      disabled={row.saveState === "saving"}
-                    >
-                      Save Grade
-                    </button>
+                    {#if !isLocked}
+                      <button
+                        type="button"
+                        onclick={() => void saveGrade(row)}
+                        disabled={row.saveState === "saving"}
+                      >
+                        Save Grade
+                      </button>
+                    {/if}
                     {#if row.saveMessage}
                       <span class="row-status" data-tone={row.saveState}>
                         {row.saveMessage}
@@ -284,6 +345,14 @@
         </tbody>
       </table>
     </div>
+
+    {#if !isLocked}
+      <div class="footer-actions">
+        <button type="button" class="finalize-button" onclick={() => void finalizeLedger()} disabled={finalizing || !selectedSection || roster.length === 0}>
+          {finalizing ? "Finalizing..." : "Finalize & Lock Ledger"}
+        </button>
+      </div>
+    {/if}
   {/if}
 </section>
 
@@ -292,6 +361,14 @@
     display: grid;
     gap: 1rem;
     padding: 1rem;
+  }
+
+  .locked-banner {
+    padding: 0.9rem 1rem;
+    border: 1px solid #e0a800;
+    background: #fff7df;
+    color: #6b4e00;
+    border-radius: 0.75rem;
   }
 
   .toolbar {
@@ -348,5 +425,23 @@
     gap: 0.5rem;
     align-items: center;
     flex-wrap: wrap;
+  }
+
+  .footer-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .finalize-button {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #1f4b99;
+    background: #1f4b99;
+    color: #fff;
+  }
+
+  .finalize-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
 </style>

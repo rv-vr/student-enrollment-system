@@ -8,6 +8,22 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "npx turbo run build",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "npx turbo run build",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }

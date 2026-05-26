@@ -7,7 +7,8 @@ export type EnrollmentStatus =
   | "inc"
   | "dropped"
   | "pending"
-  | "ongoing";
+  | "ongoing"
+  | "finalized";
 export type NotificationType = "info" | "success" | "warning" | "alert";
 export type SectionScheduleEntry = {
   day: string;

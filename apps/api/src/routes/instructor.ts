@@ -1,11 +1,15 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
+import { z } from "zod";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
 import { courses, enrollments, sections, users } from "../db/schema";
-import { enrollmentValidationHook, instructorGradeUpdateSchema } from "../validators";
 import { zValidator } from "@hono/zod-validator";
+import {
+  enrollmentValidationHook,
+  instructorGradeUpdateSchema,
+} from "../validators";
 
 type SectionCatalogRow = typeof sections.$inferSelect & {
   courseCode: string;
@@ -109,6 +113,10 @@ function normalizeGradeInput(value: unknown) {
   return letterGrades[normalized] ?? null;
 }
 
+function isSeatOccupyingStatus(status: EnrollmentRow["status"]) {
+  return status === "ongoing" || status === "completed" || status === "finalized";
+}
+
 export const instructorRoutes = new Hono<{
   Bindings: AppBindings;
   Variables: AppVariables;
@@ -138,12 +146,15 @@ async function loadInstructorSections(c: Parameters<typeof instructorRoutes.get>
   const enrollmentRows = await db
     .select()
     .from(enrollments)
-    .where(eq(enrollments.status, "ongoing"))
     .all();
 
   const activeCounts = new Map<string, number>();
 
   for (const row of enrollmentRows) {
+    if (!isSeatOccupyingStatus(row.status)) {
+      continue;
+    }
+
     activeCounts.set(row.sectionId, (activeCounts.get(row.sectionId) ?? 0) + 1);
   }
 
@@ -190,3 +201,49 @@ async function loadInstructorSections(c: Parameters<typeof instructorRoutes.get>
 
 instructorRoutes.get("/sections", loadInstructorSections);
 instructorRoutes.get("/classes", loadInstructorSections);
+
+instructorRoutes.post(
+  "/sections/:id/finalize",
+  zValidator(
+    "param",
+    z.object({
+      id: z.string().uuid(),
+    }),
+    enrollmentValidationHook,
+  ),
+  async (c) => {
+    const user = c.get("user");
+    const { id: sectionId } = c.req.valid("param");
+
+    if (user.role !== "instructor") {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
+
+    const db = drizzle(c.env.DB);
+
+    const sectionRow = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, sectionId))
+      .get();
+
+    if (!sectionRow) {
+      return c.json({ message: "Section not found" }, 404);
+    }
+
+    if (sectionRow.instructorId !== user.id) {
+      return c.json({ success: false, error: "Access Denied", field: "auth" }, 403);
+    }
+
+    await db
+      .update(enrollments)
+      .set({ status: "finalized" })
+      .where(eq(enrollments.sectionId, sectionId))
+      .run();
+
+    return c.json({
+      message: "Grades finalized",
+      sectionId,
+    });
+  },
+);
