@@ -331,36 +331,36 @@
       {:else if filteredUsers.length === 0}
         <div class="empty-state">No users match the current search.</div>
       {:else}
-        <div class="table-wrap">
-          <table>
+        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Academic Profile</th>
+                <th class="whitespace-nowrap">Name</th>
+                <th class="whitespace-nowrap">Username</th>
+                <th class="whitespace-nowrap">Role</th>
+                <th class="whitespace-nowrap">Academic Profile</th>
               </tr>
             </thead>
             <tbody>
               {#each filteredUsers as user (user.id)}
                 <tr>
                   <td>
-                    <div class="primary-cell">{user.name}</div>
-                    <div class="secondary-cell">{user.id}</div>
+                    <div class="primary-cell max-w-[200px] truncate">{user.name}</div>
+                    <div class="secondary-cell whitespace-nowrap">{user.id}</div>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <span class="username-pill">{user.username}</span>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <span class="role-pill" data-role={user.role}
                       >{user.role}</span
                     >
                   </td>
                   <td>
                     <div class="profile-stack">
-                      <span>{user.college ?? "-"}</span>
-                      <span>{user.program ?? "-"}</span>
-                      <span>{user.campus ?? "-"}</span>
+                      <span class="max-w-[200px] truncate">{user.college ?? "-"}</span>
+                      <span class="max-w-[200px] truncate">{user.program ?? "-"}</span>
+                      <span class="max-w-[200px] truncate">{user.campus ?? "-"}</span>
                     </div>
                   </td>
                 </tr>
@@ -615,12 +615,6 @@
 
   .search-box {
     min-width: min(100%, 280px);
-  }
-
-  .table-wrap {
-    overflow-x: auto;
-    border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.12);
   }
 
   table {

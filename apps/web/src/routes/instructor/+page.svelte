@@ -294,34 +294,36 @@
   {/if}
 
   {#if selectedSectionId}
-    <div class="table-shell">
-      <table>
+    <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+      <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
         <thead>
           <tr>
-            <th>Student ID</th>
-            <th>Student Name</th>
-            <th>Current Grade</th>
-            <th>Academic Remark</th>
-            <th>Actions</th>
+            <th class="whitespace-nowrap">Student ID</th>
+            <th class="whitespace-nowrap">Student Name</th>
+            <th class="whitespace-nowrap">Current Grade</th>
+            <th class="whitespace-nowrap">Academic Remark</th>
+            <th class="whitespace-nowrap">Actions</th>
           </tr>
         </thead>
         <tbody>
           {#if roster.length === 0}
             <tr>
-              <td colspan="5">No enrolled students found.</td>
+              <td colspan="5" class="whitespace-nowrap">No enrolled students found.</td>
             </tr>
           {:else}
             {#each roster as row (row.id)}
               <tr>
-                <td>{row.studentId}</td>
-                <td>{row.student?.name ?? "Unknown student"}</td>
+                <td class="whitespace-nowrap">{row.studentId}</td>
                 <td>
+                  <span class="block max-w-[200px] truncate">{row.student?.name ?? "Unknown student"}</span>
+                </td>
+                <td class="whitespace-nowrap">
                   <input type="text" bind:value={row.draftGrade} disabled={isLocked} />
                 </td>
                 <td>
                   <input type="text" bind:value={row.draftRemark} disabled={isLocked} />
                 </td>
-                <td>
+                <td class="whitespace-nowrap">
                   <div class="row-actions">
                     {#if !isLocked}
                       <button
@@ -389,15 +391,6 @@
   .feedback[data-tone="success"],
   .row-status[data-tone="saved"] {
     color: #0f7a42;
-  }
-
-  .table-shell {
-    overflow-x: auto;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
   }
 
   th,

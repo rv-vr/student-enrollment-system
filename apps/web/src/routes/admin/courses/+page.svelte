@@ -374,36 +374,36 @@
       {:else if courses.length === 0}
         <div class="empty-copy">No courses registered yet.</div>
       {:else}
-        <div class="table-shell">
-          <table>
+        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
             <thead>
               <tr>
-                <th scope="col">Code</th>
-                <th scope="col">Title</th>
-                <th scope="col">Credits</th>
-                <th scope="col">Remaining Seats / Capacity</th>
-                <th scope="col">Prerequisites</th>
+                <th scope="col" class="whitespace-nowrap">Code</th>
+                <th scope="col" class="whitespace-nowrap">Title</th>
+                <th scope="col" class="whitespace-nowrap">Credits</th>
+                <th scope="col" class="whitespace-nowrap">Remaining Seats / Capacity</th>
+                <th scope="col" class="whitespace-nowrap">Prerequisites</th>
               </tr>
             </thead>
             <tbody>
               {#each courses as course (course.id)}
                 <tr>
-                  <td>
-                    <strong>{course.code}</strong>
+                  <td class="whitespace-nowrap">
+                    <strong class="whitespace-nowrap">{course.code}</strong>
                   </td>
                   <td>
-                    <div class="course-title">{course.title}</div>
+                    <div class="course-title max-w-[200px] truncate">{course.title}</div>
                     {#if course.description}
-                      <div class="course-description">{course.description}</div>
+                      <div class="course-description max-w-[200px] truncate">{course.description}</div>
                     {/if}
                   </td>
-                  <td>{formatCredits(course)}</td>
-                  <td>
+                  <td class="whitespace-nowrap">{formatCredits(course)}</td>
+                  <td class="whitespace-nowrap">
                     <span class="seat-chip">
                       {course.remainingSeats} / {course.capacity}
                     </span>
                   </td>
-                  <td>{formatPrerequisites(course)}</td>
+                  <td class="max-w-[200px] truncate">{formatPrerequisites(course)}</td>
                 </tr>
               {/each}
             </tbody>
@@ -701,12 +701,6 @@
     cursor: wait;
     opacity: 0.72;
     transform: none;
-  }
-
-  .table-shell {
-    overflow-x: auto;
-    border-radius: 1.1rem;
-    border: 1px solid rgba(148, 163, 184, 0.15);
   }
 
   table {

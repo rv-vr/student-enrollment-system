@@ -112,15 +112,15 @@
         No pending enrollment requests.
       </div>
     {:else}
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
+      <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+        <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
           <thead class="bg-slate-900/80 text-slate-300">
             <tr>
-              <th scope="col" class="px-6 py-4 font-medium">Student</th>
-              <th scope="col" class="px-6 py-4 font-medium">Course</th>
-              <th scope="col" class="px-6 py-4 font-medium">Status</th>
-              <th scope="col" class="px-6 py-4 font-medium">Requested</th>
-              <th scope="col" class="px-6 py-4 font-medium text-right"
+              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap">Student</th>
+              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap">Course</th>
+              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap">Status</th>
+              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap">Requested</th>
+              <th scope="col" class="px-6 py-4 font-medium text-right whitespace-nowrap"
                 >Action</th
               >
             </tr>
@@ -128,17 +128,17 @@
           <tbody class="divide-y divide-slate-900 bg-slate-950">
             {#each requests as request (request.id)}
               <tr class="transition-colors hover:bg-slate-900/60">
-                <td class="px-6 py-4 align-top">
+                <td class="px-6 py-4 align-top whitespace-nowrap">
                   <div class="font-semibold text-white">
                     {request.student?.name ?? request.studentId}
                   </div>
-                  <div class="text-xs text-slate-400">{request.studentId}</div>
+                  <div class="text-xs text-slate-400 whitespace-nowrap">{request.studentId}</div>
                 </td>
                 <td class="px-6 py-4 align-top">
-                  <div class="font-semibold text-cyan-200">
+                  <div class="font-semibold text-cyan-200 whitespace-nowrap">
                     {request.course?.code ?? request.courseCode}
                   </div>
-                  <div class="text-xs text-slate-400">
+                  <div class="text-xs text-slate-400 max-w-[200px] truncate">
                     {request.course?.title ?? "Course details unavailable"}
                   </div>
                   {#if request.course?.schedule}
@@ -147,17 +147,17 @@
                     </div>
                   {/if}
                 </td>
-                <td class="px-6 py-4 align-top">
+                <td class="px-6 py-4 align-top whitespace-nowrap">
                   <span
                     class="inline-flex rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-200"
                   >
                     {request.status}
                   </span>
                 </td>
-                <td class="px-6 py-4 align-top text-slate-300">
+                <td class="px-6 py-4 align-top text-slate-300 whitespace-nowrap">
                   {request.createdAt}
                 </td>
-                <td class="px-6 py-4 align-top">
+                <td class="px-6 py-4 align-top whitespace-nowrap">
                   <div class="flex justify-end gap-3">
                     <button
                       type="button"

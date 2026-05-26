@@ -451,30 +451,30 @@
       {:else if sections.length === 0}
         <div class="empty-copy">No live sections yet.</div>
       {:else}
-        <div class="table-shell">
-          <table>
+        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
             <thead>
               <tr>
-                <th scope="col">Course</th>
-                <th scope="col">Section</th>
-                <th scope="col">Instructor</th>
-                <th scope="col">Capacity</th>
-                <th scope="col">Remaining</th>
-                <th scope="col">Schedule</th>
-                <th scope="col">Actions</th>
+                <th scope="col" class="whitespace-nowrap">Course</th>
+                <th scope="col" class="whitespace-nowrap">Section</th>
+                <th scope="col" class="whitespace-nowrap">Instructor</th>
+                <th scope="col" class="whitespace-nowrap">Capacity</th>
+                <th scope="col" class="whitespace-nowrap">Remaining</th>
+                <th scope="col" class="whitespace-nowrap">Schedule</th>
+                <th scope="col" class="whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
               {#each sections as section (section.id)}
                 <tr>
-                  <td>
-                    <strong>{section.courseCode}</strong>
-                    <div class="table-subcopy">{section.courseTitle}</div>
+                  <td class="whitespace-nowrap">
+                    <strong class="whitespace-nowrap">{section.courseCode}</strong>
+                    <div class="table-subcopy max-w-[200px] truncate">{section.courseTitle}</div>
                   </td>
-                  <td>{section.sectionName}</td>
-                  <td>{section.instructorName}</td>
-                  <td>{section.capacity}</td>
-                  <td>
+                  <td class="whitespace-nowrap">{section.sectionName}</td>
+                  <td class="whitespace-nowrap">{section.instructorName}</td>
+                  <td class="whitespace-nowrap">{section.capacity}</td>
+                  <td class="whitespace-nowrap">
                     <span class="seat-chip">
                       {section.remainingSeats} / {section.capacity}
                     </span>
@@ -482,7 +482,7 @@
                   <td>
                     <div class="schedule-summary">{formatSchedule(section.scheduleArray)}</div>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <button
                       type="button"
                       class="secondary-button roster-button"
@@ -519,29 +519,29 @@
       {:else if roster.length === 0}
         <div class="empty-copy">No enrollments found for this section.</div>
       {:else}
-        <div class="table-shell">
-          <table>
+        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
             <thead>
               <tr>
-                <th scope="col">Student ID</th>
-                <th scope="col">Student Name</th>
-                <th scope="col">Status</th>
-                <th scope="col">Grade</th>
-                <th scope="col">Remarks</th>
+                <th scope="col" class="whitespace-nowrap">Student ID</th>
+                <th scope="col" class="whitespace-nowrap">Student Name</th>
+                <th scope="col" class="whitespace-nowrap">Status</th>
+                <th scope="col" class="whitespace-nowrap">Grade</th>
+                <th scope="col" class="whitespace-nowrap">Remarks</th>
               </tr>
             </thead>
             <tbody>
               {#each roster as row (row.id)}
                 <tr>
-                  <td>{row.student.id}</td>
+                  <td class="whitespace-nowrap">{row.student.id}</td>
                   <td>
-                    {row.student.name}
-                    <div class="table-subcopy">{row.student.username}</div>
+                    <div class="max-w-[200px] truncate">{row.student.name}</div>
+                    <div class="table-subcopy whitespace-nowrap">{row.student.username}</div>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <span class="status-pill">{row.status}</span>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <span class="finalized-grade">
                       <span>{row.grade ?? "—"}</span>
                       {#if isFinalized(row)}
@@ -549,7 +549,7 @@
                       {/if}
                     </span>
                   </td>
-                  <td>{row.remark ?? "—"}</td>
+                  <td class="max-w-[200px] truncate">{row.remark ?? "—"}</td>
                 </tr>
               {/each}
             </tbody>
@@ -891,12 +891,6 @@
     cursor: wait;
     opacity: 0.72;
     transform: none;
-  }
-
-  .table-shell {
-    overflow-x: auto;
-    border-radius: 1.1rem;
-    border: 1px solid rgba(148, 163, 184, 0.15);
   }
 
   table {

@@ -338,8 +338,9 @@
     </div>
   {/if}
 
-  <div class="split-layout">
-    <section class="panel offerings-panel">
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full">
+    <div class="xl:col-span-7 space-y-4 w-full">
+      <section class="panel offerings-panel">
       <div class="panel-header">
         <div>
           <p class="eyebrow">Available Class Offerings</p>
@@ -348,28 +349,28 @@
         <span class="panel-chip">{sections.length} offerings</span>
       </div>
 
-      <div class="table-shell">
-        <table>
+      <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+        <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
           <thead>
             <tr>
-              <th scope="col">Course</th>
-              <th scope="col">Instructor</th>
-              <th scope="col">Schedule</th>
-              <th scope="col">Seats</th>
-              <th scope="col">Action</th>
+              <th scope="col" class="whitespace-nowrap">Course</th>
+              <th scope="col" class="whitespace-nowrap">Instructor</th>
+              <th scope="col" class="whitespace-nowrap">Schedule</th>
+              <th scope="col" class="whitespace-nowrap">Seats</th>
+              <th scope="col" class="whitespace-nowrap">Action</th>
             </tr>
           </thead>
           <tbody>
             {#each sections as section (section.id)}
               <tr>
-                <td>
+                <td class="whitespace-nowrap">
                   <div class="course-block">
-                    <strong>{section.courseCode}</strong>
-                    <span>{section.courseTitle}</span>
+                    <strong class="whitespace-nowrap">{section.courseCode}</strong>
+                    <span class="max-w-[200px] truncate">{section.courseTitle}</span>
                     <small>{section.sectionName}</small>
                   </div>
                 </td>
-                <td>{section.instructorName}</td>
+                <td class="whitespace-nowrap">{section.instructorName}</td>
                 <td>
                   <div class="schedule-list">
                     {#each section.scheduleArray as scheduleItem, index (index)}
@@ -380,12 +381,12 @@
                     {/if}
                   </div>
                 </td>
-                <td>
+                <td class="whitespace-nowrap">
                   <span class="seat-pill">
                     {section.remainingSeats} / {section.capacity}
                   </span>
                 </td>
-                <td>
+                <td class="whitespace-nowrap">
                   <button
                     type="button"
                     class="enroll-button"
@@ -406,9 +407,11 @@
           </tbody>
         </table>
       </div>
-    </section>
+      </section>
+    </div>
 
-    <section class="panel schedule-panel">
+    <div class="xl:col-span-5 space-y-4 w-full">
+      <section class="panel schedule-panel">
       <div class="panel-header">
         <div>
           <p class="eyebrow">My Schedule Matrix</p>
@@ -423,23 +426,23 @@
           <p>Select a section from the left to start building your schedule.</p>
         </div>
       {:else}
-        <div class="table-shell">
-          <table>
+        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
             <thead>
               <tr>
-                <th scope="col">Course</th>
-                <th scope="col">Section</th>
-                <th scope="col">Status</th>
-                <th scope="col">Final Grade</th>
+                <th scope="col" class="whitespace-nowrap">Course</th>
+                <th scope="col" class="whitespace-nowrap">Section</th>
+                <th scope="col" class="whitespace-nowrap">Status</th>
+                <th scope="col" class="whitespace-nowrap">Final Grade</th>
               </tr>
             </thead>
             <tbody>
               {#each myEnrollments as enrollment (enrollment.id)}
                 <tr>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <div class="course-block">
-                      <strong>{enrollment.courseCode}</strong>
-                      <span>{enrollment.courseTitle}</span>
+                      <strong class="whitespace-nowrap">{enrollment.courseCode}</strong>
+                      <span class="max-w-[200px] truncate">{enrollment.courseTitle}</span>
                     </div>
                   </td>
                   <td>
@@ -453,12 +456,12 @@
                       {/if}
                     </div>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <span class="status-pill" data-tone={toStatusTone(enrollment.status)}>
                       {toStatusLabel(enrollment.status)}
                     </span>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     {#if hasFinalGrade(enrollment.status)}
                       <div class="grade-cell finalized-grade">
                         <span class="grade-value">{enrollment.grade ?? "-"}</span>
@@ -474,7 +477,8 @@
           </table>
         </div>
       {/if}
-    </section>
+      </section>
+    </div>
   </div>
 </section>
 
@@ -603,13 +607,6 @@
     color: #9f2d2d;
   }
 
-  .split-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.95fr);
-    gap: 1.25rem;
-    align-items: start;
-  }
-
   .panel {
     padding: 1.25rem;
   }
@@ -643,12 +640,6 @@
     background: rgba(28, 136, 82, 0.12);
     border: 1px solid rgba(28, 136, 82, 0.22);
     color: #18613d;
-  }
-
-  .table-shell {
-    overflow: auto;
-    border-radius: 18px;
-    border: 1px solid rgba(20, 32, 51, 0.08);
   }
 
   table {
@@ -761,10 +752,6 @@
   }
 
   @media (max-width: 1080px) {
-    .split-layout {
-      grid-template-columns: 1fr;
-    }
-
     .hero {
       align-items: flex-start;
       flex-direction: column;
