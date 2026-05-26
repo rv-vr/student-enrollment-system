@@ -10,6 +10,24 @@
     type AdminCourseCreatePayload,
   } from "$lib/api/client";
   import type { CourseCatalogEntry } from "$lib/api/types";
+  import {
+    Card,
+    Table,
+    TableHead,
+    TableHeadCell,
+    TableBody,
+    TableBodyRow,
+    TableBodyCell,
+    Badge,
+    Heading,
+    P,
+    Label,
+    Input,
+    Textarea,
+    Button,
+    Alert,
+    Checkbox,
+  } from "flowbite-svelte";
 
   type CourseFormState = {
     id: string;
@@ -209,70 +227,79 @@
   />
 </svelte:head>
 
-<section class="admin-courses-page">
-  <header class="hero-card">
-    <div>
-      <p class="eyebrow">Milestone 4</p>
-      <h1>Course Catalog Control</h1>
-      <p class="lede">
-        Register new courses, assign prerequisite chains, and keep the live
-        catalog current.
-      </p>
-    </div>
+<section class="admin-courses-page space-y-6">
+  <Card size="xl" class="shadow-none border-slate-200 max-w-none">
+    <div class="flex flex-col md:flex-row justify-between gap-6 p-4">
+      <div>
+        <Heading tag="h1" class="text-2xl font-bold text-gray-900 dark:text-white">Course Catalog Control</Heading>
+        <P class="lede mt-2 text-gray-600 dark:text-gray-400">
+          Register new courses, assign prerequisite chains, and keep the live
+          catalog current.
+        </P>
+      </div>
 
-    <div class="hero-stats" aria-label="Catalog summary">
-      <div>
-        <span class="stat-value">{courseCount}</span>
-        <span class="stat-label">Active Courses</span>
-      </div>
-      <div>
-        <span class="stat-value">{recentCount}</span>
-        <span class="stat-label">Created This Session</span>
+      <div class="hero-stats flex gap-4" aria-label="Catalog summary">
+        <Card size="sm" class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-4">
+          <span class="stat-value text-2xl font-bold text-gray-900 dark:text-white block">{courseCount}</span>
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400">Active Courses</span>
+        </Card>
+        <Card size="sm" class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-4">
+          <span class="stat-value text-2xl font-bold text-gray-900 dark:text-white block">{recentCount}</span>
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400">Created This Session</span>
+        </Card>
       </div>
     </div>
-  </header>
+  </Card>
 
   {#if feedback}
-    <div class="feedback" data-tone={feedback.tone} role="alert">
+    <Alert
+      color={feedback.tone === "success" ? "green" : "red"}
+      dismissable
+      class="rounded-xl border border-current"
+    >
       {feedback.message}
-    </div>
+    </Alert>
   {/if}
 
-  <div class="admin-grid">
-    <section class="panel form-panel">
-      <div class="panel-heading">
+  <div class="admin-grid space-y-6">
+    <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
+      <div class="panel-heading mb-6 flex justify-between items-start">
         <div>
           <p class="eyebrow">Create New Course</p>
-          <h2>Register course</h2>
+          <Heading tag="h2" class="text-xl font-bold text-gray-900 dark:text-white">Register course</Heading>
         </div>
-        <span class="panel-badge">DB-backed insert</span>
       </div>
 
-      <form class="course-form" onsubmit={handleSubmit}>
-        <div class="form-grid">
-          <label>
-            <span>Course Code</span>
-            <input
+      <form class="course-form space-y-6" onsubmit={handleSubmit}>
+        <div class="form-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <Label for="course-code" class="mb-2">Course Code</Label>
+            <Input
+              id="course-code"
               bind:value={form.id}
               autocomplete="off"
               placeholder="CS101"
               required
+              class="placeholder-slate-400/50"
             />
-          </label>
+          </div>
 
-          <label>
-            <span>Title</span>
-            <input
+          <div>
+            <Label for="title" class="mb-2">Title</Label>
+            <Input
+              id="title"
               bind:value={form.title}
               autocomplete="off"
               placeholder="Introduction to Computing"
               required
+              class="placeholder-slate-400/50"
             />
-          </label>
+          </div>
 
-          <label>
-            <span>Capacity</span>
-            <input
+          <div>
+            <Label for="capacity" class="mb-2">Capacity</Label>
+            <Input
+              id="capacity"
               bind:value={form.capacity}
               inputmode="numeric"
               min="1"
@@ -280,523 +307,154 @@
               required
               type="number"
             />
-          </label>
+          </div>
 
-          <label>
-            <span>Lecture Credits</span>
-            <input
+          <div>
+            <Label for="lecCredits" class="mb-2">Lecture Credits</Label>
+            <Input
+              id="lecCredits"
               bind:value={form.lecCredits}
               inputmode="decimal"
               min="0"
-              step="0.5"
+              step="1"
               placeholder="3"
               required
               type="number"
             />
-          </label>
+          </div>
 
-          <label>
-            <span>Lab Credits</span>
-            <input
+          <div>
+            <Label for="labCredits" class="mb-2">Lab Credits</Label>
+            <Input
+              id="labCredits"
               bind:value={form.labCredits}
               inputmode="decimal"
               min="0"
-              step="0.5"
+              step="1"
               placeholder="1"
               required
               type="number"
             />
-          </label>
+          </div>
 
-          <label class="span-3">
-            <span>Description</span>
-            <textarea
+          <div class="col-span-full">
+            <Label for="description" class="mb-2">Description</Label>
+            <Textarea
+              id="description"
               bind:value={form.description}
               placeholder="Short catalog description"
-              rows="4"
-            ></textarea>
-          </label>
+              rows=4
+              class="w-full placeholder-slate-400/50"
+            ></Textarea>
+          </div>
         </div>
 
-        <div class="prereq-block">
-          <div class="block-heading">
+        <Card size="xl" class="shadow-none border-slate-200 bg-gray-50/30 max-w-none p-4">
+          <div class="block-heading flex justify-between items-start mb-4">
             <div>
-              <h3>Prerequisite Selector</h3>
-              <p>Pick existing courses that must be completed first.</p>
+              <Heading tag="h3" class="text-lg font-bold text-gray-900 dark:text-white">Prerequisite Selector</Heading>
+              <P size="sm" class="text-gray-500 dark:text-gray-400">Pick existing courses that must be completed first.</P>
             </div>
-            <span class="pill">{form.prerequisites.length} selected</span>
+            <Badge color="indigo" class="rounded-full px-3">{form.prerequisites.length} selected</Badge>
           </div>
 
           {#if prerequisiteOptions.length > 0}
-            <div class="checkbox-grid" role="group" aria-label="Prerequisites">
+            <div class="checkbox-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" role="group" aria-label="Prerequisites">
               {#each prerequisiteOptions as course (course.id)}
-                <label class="checkbox-card">
-                  <input
+                <div class="checkbox-card flex items-start gap-3 p-3 border border-slate-200 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+                  <Checkbox
                     bind:group={form.prerequisites}
-                    type="checkbox"
                     value={course.code}
+                    class="mt-1"
                   />
-                  <span>
-                    <strong>{course.code}</strong>
-                    <small>{course.title}</small>
-                  </span>
-                </label>
+                  <div class="flex flex-col min-w-0">
+                    <span class="font-bold text-gray-900 dark:text-white truncate">{course.code}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{course.title}</span>
+                  </div>
+                </div>
               {/each}
             </div>
           {:else}
-            <div class="empty-copy">
+            <div class="empty-copy p-4 bg-white/50 border border-dashed border-slate-200 rounded-lg text-center text-gray-500 dark:bg-gray-800/50 dark:border-gray-600">
               Add at least one course before chaining prerequisites.
             </div>
           {/if}
-        </div>
+        </Card>
 
-        <div class="form-actions">
-          <button type="submit" class="primary-button" disabled={isLoading}>
+        <div class="form-actions flex gap-4">
+          <Button type="submit" disabled={isLoading}>
             {isLoading ? "Saving…" : "Create Course"}
-          </button>
-          <button type="button" class="secondary-button" onclick={resetForm}>
+          </Button>
+          <Button color="alternative" type="button" onclick={resetForm}>
             Reset Form
-          </button>
+          </Button>
         </div>
       </form>
-    </section>
+    </Card>
 
-    <section class="panel catalog-panel">
-      <div class="panel-heading">
+    <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
+      <div class="panel-heading mb-6 flex justify-between items-center">
         <div>
           <p class="eyebrow">Catalog Snapshot</p>
-          <h2>Active catalog</h2>
+          <Heading tag="h2" class="text-xl font-bold text-gray-900 dark:text-white">Active catalog</Heading>
         </div>
-        <span class="panel-badge"
-          >{isFetching ? "Refreshing" : "Live view"}</span
-        >
+        <Badge color={isFetching ? "yellow" : "green"} class="rounded-full px-3 py-1 font-bold">
+          {isFetching ? "Refreshing" : "Live view"}
+        </Badge>
       </div>
 
       {#if isFetching}
-        <div class="empty-copy">Loading course catalog…</div>
+        <div class="empty-copy py-8 text-center text-gray-500">Loading course catalog…</div>
       {:else if courses.length === 0}
-        <div class="empty-state">No courses registered yet.</div>
+        <div class="empty-state py-8 text-center text-gray-500">No courses registered yet.</div>
       {:else}
-        <div
-          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
-        >
-          <table
-            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
-          >
-            <thead>
-              <tr>
-                <th scope="col" class="whitespace-nowrap">Code</th>
-                <th scope="col" class="whitespace-nowrap">Title</th>
-                <th scope="col" class="whitespace-nowrap">Credits</th>
-                <th scope="col" class="whitespace-nowrap"
-                  >Remaining Seats / Capacity</th
-                >
-                <th scope="col" class="whitespace-nowrap">Prerequisites</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each courses as course (course.id)}
-                <tr>
-                  <td class="whitespace-nowrap">
-                    <strong class="whitespace-nowrap">{course.code}</strong>
-                  </td>
-                  <td>
-                    <div class="course-title max-w-[200px] truncate">
-                      {course.title}
-                    </div>
-                    {#if course.description}
-                      <div class="course-description max-w-[200px] truncate">
-                        {course.description}
-                      </div>
-                    {/if}
-                  </td>
-                  <td class="whitespace-nowrap">{formatCredits(course)}</td>
-                  <td class="whitespace-nowrap">
-                    <span class="seat-chip">
-                      {course.remainingSeats} / {course.capacity}
-                    </span>
-                  </td>
-                  <td class="max-w-[200px] truncate"
-                    >{formatPrerequisites(course)}</td
-                  >
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+        <Table hoverable={true} class="shadow-none border border-slate-200 rounded-lg overflow-hidden">
+          <TableHead class="bg-gray-50 dark:bg-gray-800">
+            <TableHeadCell>Code</TableHeadCell>
+            <TableHeadCell>Title</TableHeadCell>
+            <TableHeadCell>Credits</TableHeadCell>
+            <TableHeadCell>Seats / Capacity</TableHeadCell>
+            <TableHeadCell>Prerequisites</TableHeadCell>
+          </TableHead>
+          <TableBody>
+            {#each courses as course (course.id)}
+              <TableBodyRow>
+                <TableBodyCell class="font-bold text-gray-900 dark:text-white">{course.code}</TableBodyCell>
+                <TableBodyCell>
+                  <div class="course-title font-bold text-gray-900 dark:text-white truncate max-w-[200px]">{course.title}</div>
+                  {#if course.description}
+                    <div class="course-description text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px] mt-1">{course.description}</div>
+                  {/if}
+                </TableBodyCell>
+                <TableBodyCell class="whitespace-nowrap">{formatCredits(course)}</TableBodyCell>
+                <TableBodyCell>
+                  <Badge color="blue" class="rounded-full px-2 py-0.5">
+                    {course.remainingSeats} / {course.capacity}
+                  </Badge>
+                </TableBodyCell>
+                <TableBodyCell class="max-w-[200px] truncate">{formatPrerequisites(course)}</TableBodyCell>
+              </TableBodyRow>
+            {/each}
+          </TableBody>
+        </Table>
       {/if}
-    </section>
+    </Card>
   </div>
 </section>
 
 <style>
   .admin-courses-page {
-    min-height: 100%;
-    padding: clamp(1.25rem, 2vw, 2rem);
-    color: #f8fafc;
-    background:
-      radial-gradient(
-        circle at top left,
-        rgba(14, 165, 233, 0.24),
-        transparent 38%
-      ),
-      radial-gradient(
-        circle at top right,
-        rgba(234, 179, 8, 0.16),
-        transparent 32%
-      ),
-      linear-gradient(180deg, #020617 0%, #0f172a 100%);
-  }
-
-  .hero-card,
-  .panel {
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    background: rgba(2, 6, 23, 0.78);
-    backdrop-filter: blur(18px);
-    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.35);
-  }
-
-  .hero-card {
-    display: flex;
-    justify-content: space-between;
-    gap: 1.5rem;
-    border-radius: 1.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
     padding: 1.5rem;
   }
 
   .eyebrow {
-    margin: 0 0 0.4rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.26em;
-    text-transform: uppercase;
-    color: #67e8f9;
-  }
-
-  h1,
-  h2,
-  h3,
-  p {
     margin: 0;
-  }
-
-  h1 {
-    font-size: clamp(2rem, 4vw, 3.3rem);
-    line-height: 1.02;
-    margin-bottom: 0.65rem;
-  }
-
-  .lede {
-    max-width: 50rem;
-    color: #cbd5e1;
-    line-height: 1.6;
-  }
-
-  .hero-stats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.9rem;
-    min-width: min(100%, 19rem);
-  }
-
-  .hero-stats > div {
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    border-radius: 1rem;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.68);
-  }
-
-  .stat-value {
-    display: block;
-    font-size: 1.7rem;
-    font-weight: 800;
-    color: #fff;
-  }
-
-  .stat-label {
-    display: block;
-    margin-top: 0.25rem;
-    color: #94a3b8;
-    font-size: 0.82rem;
-  }
-
-  .feedback {
-    margin-top: 1rem;
-    border-radius: 1rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid transparent;
-  }
-
-  .feedback[data-tone="success"] {
-    border-color: rgba(74, 222, 128, 0.3);
-    background: rgba(20, 83, 45, 0.55);
-    color: #bbf7d0;
-  }
-
-  .feedback[data-tone="error"] {
-    border-color: rgba(251, 113, 133, 0.28);
-    background: rgba(127, 29, 29, 0.5);
-    color: #fecdd3;
-  }
-
-  .admin-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    align-items: stretch;
-    margin-top: 1rem;
-  }
-
-  .panel {
-    border-radius: 1.5rem;
-    padding: 1.25rem;
-  }
-
-  .panel-heading,
-  .block-heading,
-  .form-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .panel-heading {
-    margin-bottom: 1rem;
-  }
-
-  .panel-heading h2 {
-    font-size: 1.4rem;
-  }
-
-  .panel-badge,
-  .pill,
-  .seat-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    padding: 0.45rem 0.8rem;
-    background: rgba(15, 23, 42, 0.7);
-    color: #cbd5e1;
-    font-size: 0.8rem;
-    white-space: nowrap;
-  }
-
-  .course-form {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .form-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .span-3 {
-    grid-column: span 3;
-  }
-
-  label {
-    display: grid;
-    gap: 0.4rem;
-  }
-
-  label span {
-    font-size: 0.86rem;
-    color: #cbd5e1;
-  }
-
-  input,
-  textarea {
-    width: 100%;
-    border-radius: 0.95rem;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    background: rgba(15, 23, 42, 0.92);
-    color: #f8fafc;
-    padding: 0.9rem 1rem;
-    font: inherit;
-    outline: none;
-  }
-
-  input:focus,
-  textarea:focus {
-    border-color: rgba(103, 232, 249, 0.5);
-    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
-  }
-
-  textarea {
-    resize: vertical;
-  }
-
-  .prereq-block {
-    border-radius: 1.25rem;
-    border: 1px solid rgba(148, 163, 184, 0.15);
-    background: rgba(15, 23, 42, 0.55);
-    padding: 1rem;
-  }
-
-  .block-heading {
-    align-items: flex-start;
-    margin-bottom: 0.9rem;
-  }
-
-  .block-heading h3 {
-    margin-bottom: 0.25rem;
-  }
-
-  .block-heading p {
-    color: #94a3b8;
-    font-size: 0.86rem;
-  }
-
-  .checkbox-grid {
-    display: grid;
-    gap: 0.7rem;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  }
-
-  .checkbox-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.7rem;
-    border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(2, 6, 23, 0.72);
-    padding: 0.85rem 0.9rem;
-  }
-
-  .checkbox-card strong {
-    display: block;
-    color: #f8fafc;
-  }
-
-  .checkbox-card small {
-    display: block;
-    margin-top: 0.1rem;
-    color: #94a3b8;
-  }
-
-  .empty-copy {
-    border-radius: 1rem;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.6);
-    color: #94a3b8;
-  }
-
-  .empty-state {
-    border-radius: 1rem;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.6);
-    color: #94a3b8;
-  }
-
-  .form-actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .primary-button,
-  .secondary-button {
-    border-radius: 0.95rem;
-    border: 1px solid transparent;
-    padding: 0.85rem 1.1rem;
-    font: inherit;
+    font-size: 0.76rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #3b82f6;
     font-weight: 700;
-    cursor: pointer;
-    transition:
-      transform 140ms ease,
-      border-color 140ms ease,
-      background 140ms ease;
-  }
-
-  .primary-button {
-    background: linear-gradient(135deg, #22d3ee, #38bdf8);
-    color: #02111f;
-  }
-
-  .secondary-button {
-    background: rgba(15, 23, 42, 0.72);
-    border-color: rgba(148, 163, 184, 0.18);
-    color: #e2e8f0;
-  }
-
-  .primary-button:hover,
-  .secondary-button:hover {
-    transform: translateY(-1px);
-  }
-
-  .primary-button:disabled {
-    cursor: wait;
-    opacity: 0.72;
-    transform: none;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 48rem;
-  }
-
-  thead {
-    background: rgba(15, 23, 42, 0.85);
-    color: #cbd5e1;
-  }
-
-  th,
-  td {
-    padding: 0.95rem 1rem;
-    text-align: left;
-    vertical-align: top;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-  }
-
-  tbody tr:hover {
-    background: rgba(15, 23, 42, 0.5);
-  }
-
-  .course-title {
-    color: #f8fafc;
-    font-weight: 700;
-  }
-
-  .course-description {
-    margin-top: 0.25rem;
-    color: #94a3b8;
-    font-size: 0.86rem;
-  }
-
-  .seat-chip {
-    color: #dbeafe;
-  }
-
-  @media (max-width: 980px) {
-    .hero-card {
-      flex-direction: column;
-    }
-
-    .hero-stats {
-      min-width: 0;
-    }
-  }
-
-  @media (max-width: 720px) {
-    .form-grid,
-    .checkbox-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .span-3 {
-      grid-column: span 1;
-    }
-
-    .panel-heading,
-    .block-heading,
-    .form-actions {
-      align-items: flex-start;
-      flex-direction: column;
-    }
   }
 </style>

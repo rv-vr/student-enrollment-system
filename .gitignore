@@ -74,3 +74,4 @@ apps/api/src/db/production-seed.sql
 apps/api/src/db/generate-production-seed.ts
 *.csv
 *.pdf
+.gemini/

@@ -23,6 +23,23 @@
     SectionCatalogEntry,
     SectionScheduleEntry,
   } from "$lib/api/types";
+  import {
+    Card,
+    Table,
+    TableHead,
+    TableHeadCell,
+    TableBody,
+    TableBodyRow,
+    TableBodyCell,
+    Badge,
+    Heading,
+    P,
+    Label,
+    Input,
+    Select,
+    Button,
+    Alert,
+  } from "flowbite-svelte";
 
   type SectionFormState = {
     courseCode: string;
@@ -322,684 +339,375 @@
   />
 </svelte:head>
 
-<section class="admin-sections-page">
-  <header class="hero-card">
-    <div>
-      <p class="eyebrow">Section-Based Architecture</p>
-      <h1>Section Management</h1>
-      <p class="lede">
-        Assign instructors, break courses into live offerings, and control each
-        section's schedule and capacity independently.
-      </p>
-    </div>
+<section class="admin-sections-page space-y-6">
+  <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
+    <div class="flex flex-col md:flex-row justify-between gap-6">
+      <div>
+        <Heading tag="h1" class="text-2xl font-bold text-gray-900 dark:text-white">Section Management</Heading>
+        <P class="lede mt-2 text-gray-600 dark:text-gray-400">
+          Assign instructors, break courses into live offerings, and control each
+          section's schedule and capacity independently.
+        </P>
+      </div>
 
-    <div class="hero-stats" aria-label="Section summary">
-      <div>
-        <span class="stat-value">{sectionCount}</span>
-        <span class="stat-label">Active Sections</span>
-      </div>
-      <div>
-        <span class="stat-value">{sessionSectionCount}</span>
-        <span class="stat-label">Created This Session</span>
+      <div class="hero-stats flex gap-4" aria-label="Section summary">
+        <Card size="sm" class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-4">
+          <span class="stat-value text-2xl font-bold text-gray-900 dark:text-white block">{sectionCount}</span>
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400">Active Sections</span>
+        </Card>
+        <Card size="sm" class="shadow-none border-slate-200 bg-gray-50/50 dark:bg-gray-800/50 p-4">
+          <span class="stat-value text-2xl font-bold text-gray-900 dark:text-white block">{sessionSectionCount}</span>
+          <span class="stat-label text-sm text-gray-500 dark:text-gray-400">Created This Session</span>
+        </Card>
       </div>
     </div>
-  </header>
+  </Card>
 
   {#if feedback}
-    <div class="feedback" data-tone={feedback.tone} role="alert">
+    <Alert
+      color={feedback.tone === "success" ? "green" : "red"}
+      dismissable
+      class="rounded-xl border border-current"
+    >
       {feedback.message}
-    </div>
+    </Alert>
   {/if}
 
-  <div class="admin-grid">
-    <section class="panel form-panel">
-      <div class="panel-heading">
+  <div class="admin-grid space-y-6">
+    <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
+      <div class="panel-heading mb-6 flex justify-between items-start">
         <div>
-          <p class="eyebrow">Create Section</p>
-          <h2>Schedule offering</h2>
+          <Heading tag="h2" class="text-xl font-bold text-gray-900 dark:text-white">Schedule offering</Heading>
         </div>
-        <span class="panel-badge">Section scheduling</span>
+        <Badge color="blue" class="rounded-full px-3 py-1 font-bold">Section scheduling</Badge>
       </div>
 
-      <form class="section-form" onsubmit={handleSubmit}>
-        <div class="form-grid">
-          <label>
-            <span>Course</span>
-            <select bind:value={form.courseCode} required>
+      <form class="section-form space-y-6" onsubmit={handleSubmit}>
+        <div class="form-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div>
+            <Label for="course" class="mb-2">Course</Label>
+            <Select id="course" bind:value={form.courseCode} required>
               <option value="" disabled>Select a course</option>
               {#each activeCourseOptions as course (course.id)}
                 <option value={course.code}>
                   {course.code} - {course.title}
                 </option>
               {/each}
-            </select>
-          </label>
+            </Select>
+          </div>
 
-          <label>
-            <span>Instructor</span>
-            <select bind:value={form.instructorId} required>
+          <div>
+            <Label for="instructor" class="mb-2">Instructor</Label>
+            <Select id="instructor" bind:value={form.instructorId} required>
               <option value="" disabled>Select an instructor</option>
               {#each instructorOptions as instructor (instructor.id)}
                 <option value={instructor.id}>
                   {instructor.name} ({instructor.username})
                 </option>
               {/each}
-            </select>
-          </label>
+            </Select>
+          </div>
 
-          <label>
-            <span>Section Name</span>
-            <input
+          <div>
+            <Label for="section-name" class="mb-2">Section Name</Label>
+            <Input
+              id="section-name"
               bind:value={form.sectionName}
               placeholder="Section A"
               required
+              class="placeholder-slate-400/50"
             />
-          </label>
+          </div>
 
-          <label>
-            <span>Capacity</span>
-            <input
+          <div>
+            <Label for="capacity" class="mb-2">Capacity</Label>
+            <Input
+              id="capacity"
               bind:value={form.capacity}
               min="1"
               placeholder="30"
               required
               type="number"
             />
-          </label>
+          </div>
         </div>
 
-        <div class="schedule-block">
-          <div class="block-heading">
+        <Card size="xl" class="shadow-none border-slate-200 bg-gray-50/30 max-w-none p-4">
+          <div class="block-heading flex justify-between items-start mb-4">
             <div>
-              <h3>Schedule Array Builder</h3>
-              <p>Add day, time, and class type entries for this section.</p>
+              <Heading tag="h3" class="text-lg font-bold text-gray-900 dark:text-white">Schedule Array Builder</Heading>
+              <P size="sm" class="text-gray-500 dark:text-gray-400">Add day, time, and class type entries for this section.</P>
             </div>
-            <span class="pill">{scheduleItems.length} items</span>
+            <Badge color="indigo" class="rounded-full px-3">{scheduleItems.length} items</Badge>
           </div>
 
-          <div class="schedule-grid">
-            <label>
-              <span>Day</span>
-              <input bind:value={scheduleDraft.day} placeholder="Monday" />
-            </label>
+          <div class="schedule-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label for="day" class="mb-2">Day</Label>
+              <Input id="day" bind:value={scheduleDraft.day} placeholder="Monday" />
+            </div>
 
-            <label>
-              <span>Time</span>
-              <input
+            <div>
+              <Label for="time" class="mb-2">Time</Label>
+              <Input
+                id="time"
                 bind:value={scheduleDraft.time}
                 placeholder="08:00 - 09:30"
               />
-            </label>
+            </div>
 
-            <label>
-              <span>Type</span>
-              <input bind:value={scheduleDraft.type} placeholder="Lecture" />
-            </label>
+            <div>
+              <Label for="type" class="mb-2">Type</Label>
+              <Input 
+                id="type" 
+                bind:value={scheduleDraft.type} 
+                placeholder="Lecture" 
+                />
+            </div>
 
-            <div class="schedule-action span-3">
-              <button
-                type="button"
-                class="secondary-button"
-                onclick={addScheduleItem}
-              >
+            <div class="schedule-action md:col-span-3">
+              <Button color="alternative" type="button" class="w-full md:w-auto" onclick={addScheduleItem}>
                 Add Schedule Item
-              </button>
+              </Button>
             </div>
           </div>
 
           {#if scheduleItems.length > 0}
-            <div class="schedule-list">
+            <div class="schedule-list mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {#each scheduleItems as item, index (item.day + item.time + item.type + index)}
-                <div class="schedule-card">
-                  <div>
-                    <strong>{item.day}</strong>
-                    <p>{item.time} · {item.type}</p>
+                <Card size="sm" class="flex-row justify-between items-center gap-4 p-3 bg-white dark:bg-gray-800">
+                  <div class="min-w-0">
+                    <strong class="text-gray-900 dark:text-white">{item.day}</strong>
+                    <P size="sm" class="text-gray-500 dark:text-gray-400 truncate">{item.time} · {item.type}</P>
                   </div>
-                  <button
-                    type="button"
-                    class="ghost-button"
+                  <Button
+                    size="xs"
+                    color="red"
+                    outline
                     onclick={() => removeScheduleItem(index)}
                   >
                     Remove
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               {/each}
             </div>
           {:else}
-            <div class="empty-copy">
+            <div class="empty-copy mt-4 p-4 bg-white/50 border border-dashed border-slate-200 rounded-lg text-center text-gray-500 dark:bg-gray-800/50 dark:border-gray-600">
               No schedule items yet. Add at least one before saving.
             </div>
           {/if}
-        </div>
+        </Card>
 
-        <div class="form-actions">
-          <button type="submit" class="primary-button" disabled={isLoading}>
+        <div class="form-actions flex gap-4">
+          <Button type="submit" disabled={isLoading}>
             {isLoading ? "Saving…" : "Create Section"}
-          </button>
-          <button type="button" class="secondary-button" onclick={resetForm}>
+          </Button>
+          <Button color="alternative" type="button" onclick={resetForm}>
             Reset Form
-          </button>
+          </Button>
         </div>
       </form>
-    </section>
+    </Card>
 
-    <section class="panel requests-panel">
-      <div class="panel-heading">
+    <Card size="xl" class="shadow-none border-slate-200 max-w-none mt-6 p-4">
+      <div class="panel-heading mb-6 flex justify-between items-center">
         <div>
           <p class="eyebrow">Pending Registration Approvals</p>
-          <h2>Approval Queue</h2>
+          <Heading tag="h2" class="text-xl font-bold text-gray-900 dark:text-white">Approval Queue</Heading>
         </div>
-        <span class="panel-badge">{requests.length} pending</span>
+        <Badge color="indigo" class="rounded-full px-3 py-1 font-bold">{requests.length} pending</Badge>
       </div>
 
       {#if isFetching}
-        <div class="empty-copy">Loading queue…</div>
+        <div class="empty-copy py-8 text-center text-gray-500">Loading queue…</div>
       {:else if requests.length === 0}
-        <div class="empty-copy">Queue is empty. No pending requests.</div>
+        <div class="empty-copy py-8 text-center text-gray-500">Queue is empty. No pending requests.</div>
       {:else}
-        <div
-          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
-        >
-          <table
-            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
-          >
-            <thead>
-              <tr>
-                <th scope="col" class="whitespace-nowrap">Student</th>
-                <th scope="col" class="whitespace-nowrap">Course</th>
-                <th scope="col" class="whitespace-nowrap">Section</th>
-                <th scope="col" class="whitespace-nowrap">Requested</th>
-                <th scope="col" class="whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each requests as req (req.id)}
-                <tr>
-                  <td class="whitespace-nowrap">
-                    <strong>{req.student?.name}</strong>
-                    <div class="table-subcopy">{req.student?.username}</div>
-                  </td>
-                  <td class="whitespace-nowrap">
-                    <strong>{req.course?.id}</strong>
-                    <div class="table-subcopy truncate max-w-[150px]">
-                      {req.course?.title}
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap">{req.section?.sectionName}</td>
-                  <td class="whitespace-nowrap">
-                    {new Date(req.dateRequested).toLocaleDateString()}
-                  </td>
-                  <td class="whitespace-nowrap">
-                    <div class="flex gap-2">
-                      <button
-                        type="button"
-                        class="primary-button approve-button"
-                        onclick={() => void handleApprove(req.id)}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        class="secondary-button deny-button"
-                        onclick={() => void handleDeny(req.id)}
-                      >
-                        Deny
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+        <Table hoverable={true} class="shadow-none border border-slate-200 rounded-lg overflow-hidden">
+          <TableHead class="bg-gray-50 dark:bg-gray-800">
+            <TableHeadCell>Student</TableHeadCell>
+            <TableHeadCell>Course</TableHeadCell>
+            <TableHeadCell>Section</TableHeadCell>
+            <TableHeadCell>Requested</TableHeadCell>
+            <TableHeadCell>Actions</TableHeadCell>
+          </TableHead>
+          <TableBody>
+            {#each requests as req (req.id)}
+              <TableBodyRow>
+                <TableBodyCell>
+                  <div class="font-bold text-gray-900 dark:text-white">{req.student?.name}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">{req.student?.username}</div>
+                </TableBodyCell>
+                <TableBodyCell>
+                  <div class="font-bold text-gray-900 dark:text-white">{req.course?.id}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{req.course?.title}</div>
+                </TableBodyCell>
+                <TableBodyCell class="text-gray-900 dark:text-white">{req.section?.sectionName}</TableBodyCell>
+                <TableBodyCell class="text-gray-900 dark:text-white">
+                  {new Date(req.dateRequested).toLocaleDateString()}
+                </TableBodyCell>
+                <TableBodyCell>
+                  <div class="flex gap-2">
+                    <Button
+                      size="xs"
+                      color="green"
+                      onclick={() => void handleApprove(req.id)}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="xs"
+                      color="red"
+                      outline
+                      onclick={() => void handleDeny(req.id)}
+                    >
+                      Deny
+                    </Button>
+                  </div>
+                </TableBodyCell>
+              </TableBodyRow>
+            {/each}
+          </TableBody>
+        </Table>
       {/if}
-    </section>
+    </Card>
 
-    <section class="panel catalog-panel">
-      <div class="panel-heading">
+    <Card size="xl" class="shadow-none border-slate-200 max-w-none mt-6 p-4">
+      <div class="panel-heading mb-6 flex justify-between items-center">
         <div>
           <p class="eyebrow">Live Sections</p>
-          <h2>Active schedule</h2>
+          <Heading tag="h2" class="text-xl font-bold text-gray-900 dark:text-white">Active schedule</Heading>
         </div>
-        <span class="panel-badge"
-          >{isFetching ? "Refreshing" : "Live view"}</span
-        >
+        <Badge color={isFetching ? "yellow" : "green"} class="rounded-full px-3 py-1 font-bold">
+          {isFetching ? "Refreshing" : "Live view"}
+        </Badge>
       </div>
 
       {#if isFetching}
-        <div class="empty-copy">Loading sections…</div>
+        <div class="empty-copy py-8 text-center text-gray-500">Loading sections…</div>
       {:else if sections.length === 0}
-        <div class="empty-copy">No live sections yet.</div>
+        <div class="empty-copy py-8 text-center text-gray-500">No live sections yet.</div>
       {:else}
-        <div
-          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
-        >
-          <table
-            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
-          >
-            <thead>
-              <tr>
-                <th scope="col" class="whitespace-nowrap">Course</th>
-                <th scope="col" class="whitespace-nowrap">Section</th>
-                <th scope="col" class="whitespace-nowrap">Instructor</th>
-                <th scope="col" class="whitespace-nowrap">Capacity</th>
-                <th scope="col" class="whitespace-nowrap">Remaining</th>
-                <th scope="col" class="whitespace-nowrap">Schedule</th>
-                <th scope="col" class="whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each sections as section (section.id)}
-                <tr>
-                  <td class="whitespace-nowrap">
-                    <strong class="whitespace-nowrap"
-                      >{section.courseCode}</strong
-                    >
-                    <div class="table-subcopy max-w-[200px] truncate">
-                      {section.courseTitle}
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap">{section.sectionName}</td>
-                  <td class="whitespace-nowrap">{section.instructorName}</td>
-                  <td class="whitespace-nowrap">{section.capacity}</td>
-                  <td class="whitespace-nowrap">
-                    <span class="seat-chip">
-                      {section.remainingSeats} / {section.capacity}
-                    </span>
-                  </td>
-                  <td>
-                    <div class="schedule-summary">
-                      {formatSchedule(section.scheduleArray)}
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap">
-                    <button
-                      type="button"
-                      class="secondary-button roster-button"
-                      onclick={() => void viewRoster(section)}
-                    >
-                      View Roster / Grades
-                    </button>
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+        <Table hoverable={true} class="shadow-none border border-slate-200 rounded-lg overflow-hidden">
+          <TableHead class="bg-gray-50 dark:bg-gray-800">
+            <TableHeadCell>Course</TableHeadCell>
+            <TableHeadCell>Section</TableHeadCell>
+            <TableHeadCell>Instructor</TableHeadCell>
+            <TableHeadCell>Capacity</TableHeadCell>
+            <TableHeadCell>Seats</TableHeadCell>
+            <TableHeadCell>Schedule</TableHeadCell>
+            <TableHeadCell>Actions</TableHeadCell>
+          </TableHead>
+          <TableBody>
+            {#each sections as section (section.id)}
+              <TableBodyRow>
+                <TableBodyCell>
+                  <div class="font-bold text-gray-900 dark:text-white">{section.courseCode}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{section.courseTitle}</div>
+                </TableBodyCell>
+                <TableBodyCell class="text-gray-900 dark:text-white">{section.sectionName}</TableBodyCell>
+                <TableBodyCell class="text-gray-900 dark:text-white">{section.instructorName}</TableBodyCell>
+                <TableBodyCell class="text-gray-900 dark:text-white text-center">{section.capacity}</TableBodyCell>
+                <TableBodyCell>
+                  <Badge color="blue" class="rounded-full px-2 py-0.5">
+                    {section.remainingSeats} / {section.capacity}
+                  </Badge>
+                </TableBodyCell>
+                <TableBodyCell>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic">
+                    {formatSchedule(section.scheduleArray)}
+                  </div>
+                </TableBodyCell>
+                <TableBodyCell>
+                  <Button
+                    size="xs"
+                    color="alternative"
+                    onclick={() => void viewRoster(section)}
+                  >
+                    View Roster
+                  </Button>
+                </TableBodyCell>
+              </TableBodyRow>
+            {/each}
+          </TableBody>
+        </Table>
       {/if}
-    </section>
+    </Card>
   </div>
 
   {#if rosterSection}
-    <section class="panel roster-panel">
-      <div class="panel-heading">
+    <Card size="xl" class="shadow-none border-slate-200 max-w-none mt-6 p-4">
+      <div class="panel-heading mb-6 flex justify-between items-center">
         <div>
           <p class="eyebrow">Roster View</p>
-          <h2>
+          <Heading tag="h2" class="text-xl font-bold text-gray-900 dark:text-white">
             {rosterSection.courseCode} - {rosterSection.sectionName}
-          </h2>
+          </Heading>
         </div>
-        <span class="panel-badge">
+        <Badge color="indigo" class="rounded-full px-3 py-1 font-bold">
           {rosterLoading ? "Loading roster" : `${roster.length} students`}
-        </span>
+        </Badge>
       </div>
 
       {#if rosterLoading}
-        <div class="empty-copy">Loading roster…</div>
+        <div class="empty-copy py-8 text-center text-gray-500">Loading roster…</div>
       {:else if roster.length === 0}
-        <div class="empty-copy">No enrollments found for this section.</div>
+        <div class="empty-copy py-8 text-center text-gray-500">No enrollments found for this section.</div>
       {:else}
-        <div
-          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
-        >
-          <table
-            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
-          >
-            <thead>
-              <tr>
-                <th scope="col" class="whitespace-nowrap">Student ID</th>
-                <th scope="col" class="whitespace-nowrap">Student Name</th>
-                <th scope="col" class="whitespace-nowrap">Status</th>
-                <th scope="col" class="whitespace-nowrap">Grade</th>
-                <th scope="col" class="whitespace-nowrap">Remarks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each roster as row (row.id)}
-                <tr>
-                  <td class="whitespace-nowrap">{row.student.id}</td>
-                  <td>
-                    <div class="max-w-[200px] truncate">{row.student.name}</div>
-                    <div class="table-subcopy whitespace-nowrap">
-                      {row.student.username}
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap">
-                    <span class="status-pill">{row.status}</span>
-                  </td>
-                  <td class="whitespace-nowrap">
-                    <span class="finalized-grade">
-                      <span>{row.grade ?? "—"}</span>
-                      {#if isFinalized(row)}
-                        <span class="finalized-badge">🔒 Finalized</span>
-                      {/if}
-                    </span>
-                  </td>
-                  <td class="max-w-[200px] truncate">{row.remark ?? "—"}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+        <Table hoverable={true} class="shadow-none border border-slate-200 rounded-lg overflow-hidden">
+          <TableHead class="bg-gray-50 dark:bg-gray-800">
+            <TableHeadCell>Student ID</TableHeadCell>
+            <TableHeadCell>Student Name</TableHeadCell>
+            <TableHeadCell>Status</TableHeadCell>
+            <TableHeadCell>Grade</TableHeadCell>
+            <TableHeadCell>Remarks</TableHeadCell>
+          </TableHead>
+          <TableBody>
+            {#each roster as row (row.id)}
+              <TableBodyRow>
+                <TableBodyCell class="text-gray-900 dark:text-white">{row.student.id}</TableBodyCell>
+                <TableBodyCell>
+                  <div class="font-bold text-gray-900 dark:text-white truncate max-w-[200px]">{row.student.name}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">{row.student.username}</div>
+                </TableBodyCell>
+                <TableBodyCell>
+                  <Badge color={row.status === "finalized" ? "green" : "blue"} class="rounded-full px-2 py-0.5 capitalize">
+                    {row.status}
+                  </Badge>
+                </TableBodyCell>
+                <TableBodyCell>
+                  <div class="flex items-center gap-2">
+                    <span class="text-gray-900 dark:text-white">{row.grade ?? "—"}</span>
+                    {#if isFinalized(row)}
+                      <Badge color="green" class="rounded-full px-2 py-0.5 text-[10px]">🔒 Finalized</Badge>
+                    {/if}
+                  </div>
+                </TableBodyCell>
+                <TableBodyCell class="text-gray-500 dark:text-gray-400 italic truncate max-w-[200px]">
+                  {row.remark ?? "—"}
+                </TableBodyCell>
+              </TableBodyRow>
+            {/each}
+          </TableBody>
+        </Table>
       {/if}
-    </section>
+    </Card>
   {/if}
 </section>
 
 <style>
   .admin-sections-page {
-    min-height: 100%;
-    padding: clamp(1.25rem, 2vw, 2rem);
-    color: #f8fafc;
-    background:
-      radial-gradient(
-        circle at top left,
-        rgba(56, 189, 248, 0.22),
-        transparent 38%
-      ),
-      radial-gradient(
-        circle at top right,
-        rgba(168, 85, 247, 0.16),
-        transparent 32%
-      ),
-      linear-gradient(180deg, #020617 0%, #0f172a 100%);
-  }
-
-  .hero-card,
-  .panel {
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    background: rgba(2, 6, 23, 0.78);
-    backdrop-filter: blur(18px);
-    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.35);
-  }
-
-  .hero-card {
-    display: flex;
-    justify-content: space-between;
-    gap: 1.5rem;
-    border-radius: 1.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
     padding: 1.5rem;
   }
 
   .eyebrow {
-    margin: 0 0 0.4rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.26em;
-    text-transform: uppercase;
-    color: #67e8f9;
-  }
-
-  h1,
-  h2,
-  h3,
-  p {
     margin: 0;
-  }
-
-  h1 {
-    font-size: clamp(2rem, 4vw, 3.3rem);
-    line-height: 1.02;
-    margin-bottom: 0.65rem;
-  }
-
-  .lede {
-    max-width: 52rem;
-    color: #cbd5e1;
-    line-height: 1.6;
-  }
-
-  .hero-stats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.9rem;
-    min-width: min(100%, 19rem);
-  }
-
-  .hero-stats > div {
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    border-radius: 1rem;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.68);
-  }
-
-  .stat-value {
-    display: block;
-    font-size: 1.7rem;
-    font-weight: 800;
-    color: #fff;
-  }
-
-  .stat-label {
-    display: block;
-    margin-top: 0.25rem;
-    color: #94a3b8;
-    font-size: 0.82rem;
-  }
-
-  .feedback {
-    margin-top: 1rem;
-    border-radius: 1rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid transparent;
-  }
-
-  .feedback[data-tone="success"] {
-    border-color: rgba(74, 222, 128, 0.3);
-    background: rgba(20, 83, 45, 0.55);
-    color: #bbf7d0;
-  }
-
-  .feedback[data-tone="error"] {
-    border-color: rgba(251, 113, 133, 0.28);
-    background: rgba(127, 29, 29, 0.5);
-    color: #fecdd3;
-  }
-
-  .admin-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    align-items: stretch;
-    margin-top: 1rem;
-  }
-
-  .panel {
-    border-radius: 1.5rem;
-    padding: 1.25rem;
-  }
-
-  .panel-heading,
-  .block-heading,
-  .form-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .panel-heading {
-    margin-bottom: 1rem;
-  }
-
-  .panel-heading h2 {
-    font-size: 1.4rem;
-  }
-
-  .panel-badge,
-  .pill,
-  .seat-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    padding: 0.45rem 0.8rem;
-    background: rgba(15, 23, 42, 0.7);
-    color: #cbd5e1;
-    font-size: 0.8rem;
-    white-space: nowrap;
-  }
-
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.35rem 0.65rem;
-    background: rgba(15, 23, 42, 0.72);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    color: #cbd5e1;
-    text-transform: capitalize;
-    font-size: 0.8rem;
-  }
-
-  .finalized-grade {
-    display: inline-flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .finalized-badge {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.28rem 0.55rem;
-    border: 1px solid rgba(74, 222, 128, 0.35);
-    background: rgba(20, 83, 45, 0.55);
-    color: #bbf7d0;
     font-size: 0.76rem;
-    white-space: nowrap;
-  }
-
-  .section-form {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .form-grid,
-  .schedule-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .span-3 {
-    grid-column: span 3;
-  }
-
-  label {
-    display: grid;
-    gap: 0.4rem;
-  }
-
-  label span {
-    font-size: 0.86rem;
-    color: #cbd5e1;
-  }
-
-  input,
-  select {
-    width: 100%;
-    border-radius: 0.95rem;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    background: rgba(15, 23, 42, 0.92);
-    color: #f8fafc;
-    padding: 0.9rem 1rem;
-    font: inherit;
-    outline: none;
-  }
-
-  input:focus,
-  select:focus {
-    border-color: rgba(103, 232, 249, 0.5);
-    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
-  }
-
-  .schedule-block {
-    border-radius: 1.25rem;
-    border: 1px solid rgba(148, 163, 184, 0.15);
-    background: rgba(15, 23, 42, 0.55);
-    padding: 1rem;
-  }
-
-  .block-heading {
-    align-items: flex-start;
-    margin-bottom: 0.9rem;
-  }
-
-  .block-heading h3 {
-    margin-bottom: 0.25rem;
-  }
-
-  .block-heading p {
-    color: #94a3b8;
-    font-size: 0.86rem;
-  }
-
-  .schedule-action {
-    display: flex;
-    align-items: end;
-  }
-
-  .schedule-list {
-    display: grid;
-    gap: 0.75rem;
-    margin-top: 0.9rem;
-  }
-
-  .schedule-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(2, 6, 23, 0.72);
-    padding: 0.85rem 0.95rem;
-  }
-
-  .schedule-card strong {
-    display: block;
-    color: #f8fafc;
-  }
-
-  .schedule-card p,
-  .table-subcopy,
-  .schedule-summary {
-    color: #94a3b8;
-    font-size: 0.86rem;
-  }
-
-  .empty-copy {
-    border-radius: 1rem;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.6);
-    color: #94a3b8;
-  }
-
-  .form-actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .primary-button,
-  .secondary-button,
-  .ghost-button {
-    border-radius: 0.95rem;
-    border: 1px solid transparent;
-    padding: 0.85rem 1.1rem;
-    font: inherit;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #3b82f6;
     font-weight: 700;
     cursor: pointer;
     transition:
