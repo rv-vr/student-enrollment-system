@@ -3,10 +3,16 @@ import { hc } from "hono/client";
 import { getAuthHeaders } from "$lib/stores/auth";
 import type {
   ApiErrorResponse,
+  AdminRosterEntry,
   CourseAvailability,
   CourseCatalogEntry,
+  InstructorSectionsResponse,
   LoginResponse,
   MutationResponse,
+  PublicUsersResponse,
+  SectionCatalogResponse,
+  SectionCatalogEntry,
+  SectionScheduleEntry,
   StudentCoursesResponse,
 } from "./types";
 import type { InferResponseType } from "hono/client";
@@ -31,22 +37,46 @@ export const API_BASE = dev
   ? (PUBLIC_LOCAL_API as string)
   : (PUBLIC_PROD_API as string);
 
-const client = hc<AppType>(API_BASE, {
+const rpcClient = hc<AppType>(API_BASE, {
   headers: () => getAuthHeaders(),
-});
+}) as any;
 
-const studentNotificationsGet = client.students[":id"].notifications.$get;
+const studentNotificationsGet = rpcClient.students[":id"].notifications.$get;
+
+export const client = {
+  api: {
+    instructor: {
+      sections: {
+        $get: (
+          ...args: Parameters<typeof rpcClient.instructor.sections.$get>
+        ) => rpcClient.instructor.sections.$get(...args),
+      },
+    },
+    enrollments: {
+      $post: (...args: Parameters<typeof rpcClient.enrollments.$post>) =>
+        rpcClient.enrollments.$post(...args),
+      ":id": {
+        grade: {
+          $patch: (...args: any[]) =>
+            rpcClient.enrollments[":id"].grade.$patch(...args),
+        },
+      },
+    },
+  },
+};
+
+export type { InstructorSectionsResponse };
 
 export type InstructorClassesResponse = InferResponseType<
-  typeof client.instructor.classes.$get
+  typeof rpcClient.instructor.classes.$get
 >;
 
 export type AdminRequestsResponse = InferResponseType<
-  typeof client.admin.requests.$get
+  typeof rpcClient.admin.requests.$get
 >;
 
 export type AdminUsersResponse = InferResponseType<
-  typeof client.admin.users.$get
+  typeof rpcClient.admin.users.$get
 >;
 
 export type AdminUser = AdminUsersResponse["users"][number];
@@ -58,6 +88,24 @@ export type AdminUserCreatePayload = {
   college?: string;
   program?: string;
   campus?: string;
+};
+
+export type AdminCourseCreatePayload = {
+  id: string;
+  title: string;
+  description?: string;
+  capacity: number;
+  labCredits: number;
+  lecCredits: number;
+  prerequisites?: string[];
+};
+
+export type SectionCreatePayload = {
+  courseCode: string;
+  instructorId: string;
+  sectionName: string;
+  capacity: number;
+  scheduleArray: SectionScheduleEntry[];
 };
 
 export type StudentNotificationsResponse = InferResponseType<
@@ -87,7 +135,7 @@ async function readJson<T>(response: Response): Promise<T> {
 
 export async function loginWithCredentials(username: string, password: string) {
   return readJson<LoginResponse>(
-    await client.auth.login.$post({
+    await rpcClient.auth.login.$post({
       json: {
         username,
         password,
@@ -97,26 +145,72 @@ export async function loginWithCredentials(username: string, password: string) {
 }
 
 export async function getCourses() {
-  return readJson<CourseCatalogEntry[]>(await client.courses.$get());
+  return readJson<CourseCatalogEntry[]>(await rpcClient.courses.$get());
 }
 
 export async function getInstructorClasses() {
   return readJson<InstructorClassesResponse>(
-    await client.instructor.classes.$get(),
+    await rpcClient.instructor.classes.$get(),
+  );
+}
+
+export async function getAdminSectionRoster(sectionId: string) {
+  return readJson<AdminRosterEntry[]>(
+    await rpcClient.admin.sections[":id"].roster.$get({
+      param: { id: String(sectionId) },
+    }),
+  );
+}
+
+export async function finalizeInstructorSection(sectionId: string) {
+  return readJson<{ message: string; sectionId: string }>(
+    await rpcClient.instructor.sections[":id"].finalize.$post({
+      param: { id: String(sectionId) },
+    }),
   );
 }
 
 export async function getAdminRequests() {
-  return readJson<AdminRequestsResponse>(await client.admin.requests.$get());
+  return readJson<AdminRequestsResponse>(await rpcClient.admin.requests.$get());
 }
 
 export async function getAdminUsers() {
-  return readJson<AdminUsersResponse>(await client.admin.users.$get());
+  return readJson<AdminUsersResponse>(await rpcClient.admin.users.$get());
+}
+
+export async function getUsers(role?: "student" | "instructor" | "admin") {
+  const query = role ? { role } : {};
+
+  return readJson<PublicUsersResponse>(
+    await rpcClient.users.$get({
+      query,
+    }),
+  );
 }
 
 export async function createAdminUser(payload: AdminUserCreatePayload) {
   return readJson<{ user: AdminUser }>(
-    await client.admin.users.$post({
+    await rpcClient.admin.users.$post({
+      json: payload,
+    }),
+  );
+}
+
+export async function createAdminCourse(payload: AdminCourseCreatePayload) {
+  return readJson<{ course: CourseCatalogEntry }>(
+    await rpcClient.courses.$post({
+      json: payload,
+    }),
+  );
+}
+
+export async function getSections() {
+  return readJson<SectionCatalogResponse>(await rpcClient.sections.$get());
+}
+
+export async function createSection(payload: SectionCreatePayload) {
+  return readJson<{ section: SectionCatalogEntry }>(
+    await rpcClient.sections.$post({
       json: payload,
     }),
   );
@@ -127,7 +221,7 @@ export async function decideAdminRequest(
   action: "approve" | "deny",
 ) {
   return readJson<MutationResponse>(
-    await client.admin.requests[":id"].decide.$patch({
+    await rpcClient.admin.requests[":id"].decide.$patch({
       param: { id: enrollmentId },
       json: { action },
     }),
@@ -136,7 +230,7 @@ export async function decideAdminRequest(
 
 export async function getCourseAvailability(courseCode: string) {
   return readJson<CourseAvailability>(
-    await client.courses[":code"].availability.$get({
+    await rpcClient.courses[":code"].availability.$get({
       param: { code: courseCode },
     }),
   );
@@ -144,7 +238,7 @@ export async function getCourseAvailability(courseCode: string) {
 
 export async function getStudentCourses(studentId: string) {
   return readJson<StudentCoursesResponse>(
-    await client.students[":id"].courses.$get({
+    await rpcClient.students[":id"].courses.$get({
       param: { id: String(studentId) },
     }),
   );
@@ -160,7 +254,7 @@ export async function getStudentNotifications(studentId: string) {
 
 export async function enrollStudent(studentId: string, courseCode: string) {
   return readJson<MutationResponse>(
-    await client.enroll.$post({
+    await rpcClient.enroll.$post({
       json: { studentId, courseCode: courseCode.toUpperCase() },
     }),
   );
@@ -168,7 +262,7 @@ export async function enrollStudent(studentId: string, courseCode: string) {
 
 export async function dropStudentCourse(studentId: string, courseCode: string) {
   return readJson<MutationResponse>(
-    await client.drop.$post({
+    await rpcClient.drop.$post({
       json: { studentId, courseCode: courseCode.toUpperCase() },
     }),
   );
@@ -180,7 +274,7 @@ export async function updateEnrollmentGrade(
 ) {
   // Prefer path-based grade endpoint when available
   return readJson<MutationResponse>(
-    await client["enrollments"][":id"].grade.$patch({
+    await rpcClient["enrollments"][":id"].grade.$patch({
       param: { id: String(enrollmentId) },
       json: { grade: grade === "" ? null : Number(grade) },
     }),

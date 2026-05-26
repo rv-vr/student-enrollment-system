@@ -29,14 +29,13 @@
       alertMessage = "Signed in successfully.";
       alertTone = "success";
 
-      // Redirect based on role returned from the login response
       const role = response.user?.role;
       const target =
         role === "admin"
-          ? "/admin"
-          : role === "instructor"
-            ? "/instructor"
-            : "/";
+          ? "/admin/users"
+          : role === "student"
+            ? "/student"
+            : "/instructor";
 
       await goto(resolve(target));
     } catch (error) {

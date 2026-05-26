@@ -15,7 +15,11 @@ export type Course = {
 
 export type GradeValue = number | null;
 
-export type EnrollmentStatus = "pending" | "approved" | "rejected";
+export type EnrollmentStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "finalized";
 
 export type NotificationReadStatus = "unread" | "read";
 

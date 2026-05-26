@@ -17,6 +17,52 @@ export const courseCodeParamSchema = z.object({
     .transform((value) => value.toUpperCase()),
 });
 
+export const courseCreateSchema = z.object({
+  id: z
+    .string()
+    .trim()
+    .min(1)
+    .regex(/^[A-Za-z0-9-]+$/)
+    .transform((value) => value.toUpperCase()),
+  title: z.string().trim().min(1),
+  description: z.string().trim().min(1).optional(),
+  capacity: z.number().int().nonnegative(),
+  labCredits: z.number().nonnegative(),
+  lecCredits: z.number().nonnegative(),
+  prerequisites: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1)
+        .transform((value) => value.toUpperCase()),
+    )
+    .optional()
+    .default([]),
+});
+
+export const sectionScheduleItemSchema = z.object({
+  day: z.string().trim().min(1),
+  time: z.string().trim().min(1),
+  type: z.string().trim().min(1),
+});
+
+export const sectionCreateSchema = z.object({
+  courseCode: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((value) => value.toUpperCase()),
+  instructorId: z.string().uuid(),
+  sectionName: z.string().trim().min(1),
+  capacity: z.number().int().positive(),
+  scheduleArray: z.array(sectionScheduleItemSchema).default([]),
+});
+
+export const sectionEnrollSchema = z.object({
+  sectionId: z.string().uuid(),
+});
+
 export const enrollSchema = z.object({
   studentId: z.string().uuid(),
   courseCode: z
@@ -40,12 +86,18 @@ export const gradeSchema = z.object({
   grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
 });
 
+export const instructorGradeUpdateSchema = z.object({
+  grade: z.union([z.string().trim().min(1), z.number(), z.null()]).optional(),
+  remark: z.union([z.string().trim().min(1), z.null()]).optional(),
+});
+
 export const enrollmentStatusSchema = z.enum([
   "completed",
   "inc",
   "dropped",
   "pending",
   "ongoing",
+  "finalized",
 ]);
 
 export const enrollmentRecordSchema = z.object({
@@ -57,8 +109,7 @@ export const enrollmentRecordSchema = z.object({
     .min(1)
     .transform((value) => value.toUpperCase()),
   status: enrollmentStatusSchema,
-  section: z.string().trim().min(1),
-  instructorId: z.string().uuid().nullable(),
+  sectionId: z.string().uuid(),
   grade: z.union([z.number().min(gradeScaleMin).max(gradeScaleMax), z.null()]),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -219,7 +270,15 @@ export const studentValidationHook = createValidationErrorHook({
 });
 
 export const courseValidationHook = createValidationErrorHook({
-  fieldAliases: { code: "courseCode" },
+  fieldAliases: { code: "courseCode", id: "courseCode" },
+});
+
+export const sectionValidationHook = createValidationErrorHook({
+  fieldAliases: {
+    courseCode: "courseCode",
+    instructorId: "instructorId",
+    sectionName: "sectionName",
+  },
 });
 
 export const enrollmentValidationHook = createValidationErrorHook({

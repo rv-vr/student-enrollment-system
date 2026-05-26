@@ -63,7 +63,7 @@ export function clearAuthSession() {
   authSession.set(null);
 }
 
-export function getAuthHeaders() {
+export function getAuthHeaders(): Record<string, string> {
   if (!browser) {
     return {};
   }

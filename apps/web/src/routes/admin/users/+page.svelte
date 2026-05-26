@@ -236,66 +236,70 @@
       </div>
 
       <form class="provision-form" onsubmit={handleSubmit}>
-        <label>
-          <span>Name</span>
-          <input
-            bind:value={form.name}
-            autocomplete="name"
-            placeholder="Alex Rivera"
-            required
-          />
-        </label>
+        <div class="form-grid">
+          <label>
+            <span>Name</span>
+            <input
+              bind:value={form.name}
+              autocomplete="name"
+              placeholder="Alex Rivera"
+              required
+            />
+          </label>
 
-        <label>
-          <span>Password</span>
-          <input
-            bind:value={form.password}
-            autocomplete="new-password"
-            placeholder="Create a strong password"
-            required
-            type="password"
-          />
-        </label>
+          <label>
+            <span>Password</span>
+            <input
+              bind:value={form.password}
+              autocomplete="new-password"
+              placeholder="Create a strong password"
+              required
+              type="password"
+            />
+          </label>
 
-        <label>
-          <span>Role</span>
-          <select bind:value={form.role}>
-            <option value="student">Student</option>
-            <option value="instructor">Instructor</option>
-            <option value="admin">Admin</option>
-          </select>
-        </label>
+          <label>
+            <span>Role</span>
+            <select bind:value={form.role}>
+              <option value="student">Student</option>
+              <option value="instructor">Instructor</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+        </div>
 
         <div class="conditional-fields" data-active={showAcademicFields}>
-          <label>
-            <span>College</span>
-            <input
-              bind:value={form.college}
-              autocomplete="organization"
-              placeholder="College of Computing"
-              disabled={!showAcademicFields}
-            />
-          </label>
+          <div class="academic-grid">
+            <label>
+              <span>College</span>
+              <input
+                bind:value={form.college}
+                autocomplete="organization"
+                placeholder="College of Computing"
+                disabled={!showAcademicFields}
+              />
+            </label>
 
-          <label>
-            <span>Program</span>
-            <input
-              bind:value={form.program}
-              autocomplete="off"
-              placeholder="BS Computer Science"
-              disabled={!showAcademicFields}
-            />
-          </label>
+            <label>
+              <span>Program</span>
+              <input
+                bind:value={form.program}
+                autocomplete="off"
+                placeholder="BS Computer Science"
+                disabled={!showAcademicFields}
+              />
+            </label>
 
-          <label>
-            <span>Campus</span>
-            <input
-              bind:value={form.campus}
-              autocomplete="off"
-              placeholder="Main Campus"
-              disabled={!showAcademicFields}
-            />
-          </label>
+            <label>
+              <span>Campus</span>
+              <input
+                bind:value={form.campus}
+                autocomplete="off"
+                placeholder="Main Campus"
+                disabled={!showAcademicFields}
+              />
+            </label>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -331,36 +335,50 @@
       {:else if filteredUsers.length === 0}
         <div class="empty-state">No users match the current search.</div>
       {:else}
-        <div class="table-wrap">
-          <table>
+        <div
+          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+        >
+          <table
+            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+          >
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Academic Profile</th>
+                <th class="whitespace-nowrap">Name</th>
+                <th class="whitespace-nowrap">Username</th>
+                <th class="whitespace-nowrap">Role</th>
+                <th class="whitespace-nowrap">Academic Profile</th>
               </tr>
             </thead>
             <tbody>
               {#each filteredUsers as user (user.id)}
                 <tr>
                   <td>
-                    <div class="primary-cell">{user.name}</div>
-                    <div class="secondary-cell">{user.id}</div>
+                    <div class="primary-cell max-w-[200px] truncate">
+                      {user.name}
+                    </div>
+                    <div class="secondary-cell whitespace-nowrap">
+                      {user.id}
+                    </div>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <span class="username-pill">{user.username}</span>
                   </td>
-                  <td>
+                  <td class="whitespace-nowrap">
                     <span class="role-pill" data-role={user.role}
                       >{user.role}</span
                     >
                   </td>
                   <td>
                     <div class="profile-stack">
-                      <span>{user.college ?? "-"}</span>
-                      <span>{user.program ?? "-"}</span>
-                      <span>{user.campus ?? "-"}</span>
+                      <span class="max-w-[200px] truncate"
+                        >{user.college ?? "-"}</span
+                      >
+                      <span class="max-w-[200px] truncate"
+                        >{user.program ?? "-"}</span
+                      >
+                      <span class="max-w-[200px] truncate"
+                        >{user.campus ?? "-"}</span
+                      >
                     </div>
                   </td>
                 </tr>
@@ -505,10 +523,10 @@
   }
 
   .admin-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: 1rem;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
     margin-bottom: 1rem;
   }
 
@@ -537,7 +555,14 @@
 
   .provision-form {
     display: grid;
-    gap: 0.9rem;
+    gap: 1.25rem;
+  }
+
+  .form-grid,
+  .academic-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 
   .provision-form label,
@@ -615,12 +640,6 @@
 
   .search-box {
     min-width: min(100%, 280px);
-  }
-
-  .table-wrap {
-    overflow-x: auto;
-    border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.12);
   }
 
   table {

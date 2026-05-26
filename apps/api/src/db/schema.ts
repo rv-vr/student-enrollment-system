@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export type UserRole = "student" | "instructor" | "admin";
@@ -6,10 +7,14 @@ export type EnrollmentStatus =
   | "inc"
   | "dropped"
   | "pending"
-  | "ongoing";
+  | "ongoing"
+  | "finalized";
 export type NotificationType = "info" | "success" | "warning" | "alert";
-
-const jsonText = text;
+export type SectionScheduleEntry = {
+  day: string;
+  time: string;
+  type: string;
+};
 
 export const users = sqliteTable("users", {
   id: text("id")
@@ -31,10 +36,29 @@ export const courses = sqliteTable("courses", {
   capacity: integer("capacity").notNull(),
   labCredits: real("lab_credits").notNull(),
   lecCredits: real("lec_credits").notNull(),
+  instructorId: text("instructor_id").references(() => users.id, {
+    onDelete: "cascade",
+  }),
+  prerequisites: text("prerequisites", { mode: "json" })
+    .$type<string[]>()
+    .default(sql`'[]'`),
+});
+
+export const sections = sqliteTable("sections", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  courseId: text("course_id")
+    .notNull()
+    .references(() => courses.id, { onDelete: "cascade" }),
   instructorId: text("instructor_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  prerequisites: jsonText("prerequisites").notNull(),
+  sectionName: text("section_name").notNull(),
+  capacity: integer("capacity").notNull(),
+  scheduleArray: text("schedule_array", { mode: "json" })
+    .$type<SectionScheduleEntry[]>()
+    .default(sql`'[]'`),
 });
 
 export const enrollments = sqliteTable("enrollments", {
@@ -45,14 +69,12 @@ export const enrollments = sqliteTable("enrollments", {
   courseId: text("course_id")
     .notNull()
     .references(() => courses.id, { onDelete: "cascade" }),
+  sectionId: text("section_id")
+    .notNull()
+    .references(() => sections.id, { onDelete: "cascade" }),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  instructorId: text("instructor_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  section: text("section").notNull(),
-  scheduleArray: jsonText("schedule_array").notNull(),
   dateEnrolled: text("date_enrolled"),
   dateRequested: text("date_requested").notNull(),
   grade: real("grade"),

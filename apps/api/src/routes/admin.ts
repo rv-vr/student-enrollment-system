@@ -7,7 +7,13 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { courses, enrollments, notifications, users } from "../db/schema";
+import {
+  courses,
+  enrollments,
+  notifications,
+  sections,
+  users,
+} from "../db/schema";
 import { generateAcademicUsername } from "../utils/idGenerator";
 import {
   adminDecisionSchema,
@@ -17,8 +23,16 @@ import {
 
 type CourseRow = typeof courses.$inferSelect;
 type EnrollmentRow = typeof enrollments.$inferSelect;
+type SectionRow = typeof sections.$inferSelect;
 type UserRow = typeof users.$inferSelect;
 type PublicUserRow = Omit<UserRow, "passwordHash">;
+type AdminRosterRow = EnrollmentRow & {
+  student: {
+    id: string;
+    username: string;
+    name: string;
+  };
+};
 
 const adminCreateUserSchema = z.object({
   name: z.string().trim().min(1),
@@ -29,11 +43,12 @@ const adminCreateUserSchema = z.object({
   campus: z.string().trim().min(1).optional(),
 });
 
-function parseJsonArray(value: string | null | undefined) {
+function parseJsonArray(value: unknown) {
+  if (Array.isArray(value)) return value;
   if (!value) return [] as unknown[];
 
   try {
-    const parsed = JSON.parse(value);
+    const parsed = JSON.parse(String(value));
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [] as unknown[];
@@ -43,6 +58,7 @@ function parseJsonArray(value: string | null | undefined) {
 function buildEnrollmentViewRow(
   row: EnrollmentRow,
   courseRow?: CourseRow,
+  sectionRow?: SectionRow,
   studentRow?: UserRow,
 ) {
   return {
@@ -51,6 +67,8 @@ function buildEnrollmentViewRow(
     studentId: row.userId,
     courseId: row.courseId,
     courseCode: row.courseId,
+    sectionId: row.sectionId,
+    section: sectionRow ? { ...sectionRow } : null,
     course: courseRow
       ? { ...courseRow, prerequisites: parseJsonArray(courseRow.prerequisites) }
       : null,
@@ -66,7 +84,10 @@ function buildEnrollmentViewRow(
 
 function getOpenSeatCount(rows: EnrollmentRow[]) {
   return rows.filter(
-    (row) => row.status === "ongoing" || row.status === "completed",
+    (row) =>
+      row.status === "ongoing" ||
+      row.status === "completed" ||
+      row.status === "finalized",
   ).length;
 }
 
@@ -111,6 +132,53 @@ adminRoutes.get("/users", async (c) => {
 
   return c.json({ users: payload });
 });
+
+adminRoutes.get(
+  "/sections/:id/roster",
+  zValidator(
+    "param",
+    z.object({
+      id: z.string().uuid(),
+    }),
+  ),
+  async (c) => {
+    const { id: sectionId } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    const sectionRow = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, sectionId))
+      .get();
+
+    if (!sectionRow) {
+      return c.json({ message: "Section not found" }, 404);
+    }
+
+    const rosterRows = await db
+      .select({
+        enrollment: enrollments,
+        studentId: users.id,
+        studentUsername: users.username,
+        studentName: users.name,
+      })
+      .from(enrollments)
+      .innerJoin(users, eq(enrollments.userId, users.id))
+      .where(eq(enrollments.sectionId, sectionId))
+      .all();
+
+    const roster: AdminRosterRow[] = rosterRows.map((row) => ({
+      ...row.enrollment,
+      student: {
+        id: row.studentId,
+        username: row.studentUsername,
+        name: row.studentName,
+      },
+    }));
+
+    return c.json(roster);
+  },
+);
 
 adminRoutes.post(
   "/users",
@@ -196,12 +264,17 @@ adminRoutes.get("/requests", async (c) => {
         .from(courses)
         .where(eq(courses.id, row.courseId))
         .get();
+      const sectionRow = await db
+        .select()
+        .from(sections)
+        .where(eq(sections.id, row.sectionId))
+        .get();
       const studentRow = await db
         .select()
         .from(users)
         .where(eq(users.id, row.userId))
         .get();
-      return buildEnrollmentViewRow(row, courseRow, studentRow);
+      return buildEnrollmentViewRow(row, courseRow, sectionRow, studentRow);
     }),
   );
 
@@ -232,21 +305,21 @@ adminRoutes.patch(
     const nextStatus = action === "approve" ? "ongoing" : "dropped";
 
     if (nextStatus === "ongoing") {
-      const courseRow = await db
+      const sectionRow = await db
         .select()
-        .from(courses)
-        .where(eq(courses.id, enrollmentRow.courseId))
+        .from(sections)
+        .where(eq(sections.id, enrollmentRow.sectionId))
         .get();
-      if (!courseRow) return c.json({ message: "Course not found" }, 404);
+      if (!sectionRow) return c.json({ message: "Section not found" }, 404);
 
       const activeRows = await db
         .select()
         .from(enrollments)
-        .where(eq(enrollments.courseId, courseRow.id))
+        .where(eq(enrollments.sectionId, sectionRow.id))
         .all();
-      if (courseRow.capacity - getOpenSeatCount(activeRows) <= 0) {
+      if (sectionRow.capacity - getOpenSeatCount(activeRows) <= 0) {
         return c.json(
-          { message: "Course is full. Request cannot be approved." },
+          { message: "Section is full. Request cannot be approved." },
           409,
         );
       }
@@ -280,6 +353,11 @@ adminRoutes.patch(
       .select()
       .from(courses)
       .where(eq(courses.id, updated.courseId))
+      .get();
+    const sectionRow = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, updated.sectionId))
       .get();
     const studentRow = await db
       .select()
@@ -317,7 +395,12 @@ adminRoutes.patch(
 
     return c.json({
       message: "Enrollment request decision recorded",
-      enrollment: buildEnrollmentViewRow(updated, courseRow, studentRow),
+      enrollment: buildEnrollmentViewRow(
+        updated,
+        courseRow,
+        sectionRow,
+        studentRow,
+      ),
       notification,
     });
   },

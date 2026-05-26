@@ -1,19 +1,31 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
+import { z } from "zod";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { courses, enrollments, users } from "../db/schema";
+import { courses, enrollments, sections, users } from "../db/schema";
+import { zValidator } from "@hono/zod-validator";
+import { enrollmentValidationHook } from "../validators";
+
+type SectionCatalogRow = typeof sections.$inferSelect & {
+  courseCode: string;
+  courseTitle: string;
+  enrolledCount: number;
+  remainingSeats: number;
+};
 
 type CourseRow = typeof courses.$inferSelect;
 type EnrollmentRow = typeof enrollments.$inferSelect;
+type SectionRow = typeof sections.$inferSelect;
 type UserRow = typeof users.$inferSelect;
 
-function parseJsonArray(value: string | null | undefined) {
+function parseJsonArray(value: unknown) {
+  if (Array.isArray(value)) return value;
   if (!value) return [] as unknown[];
 
   try {
-    const parsed = JSON.parse(value);
+    const parsed = JSON.parse(String(value));
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [] as unknown[];
@@ -26,9 +38,10 @@ function buildRosterEntry(row: EnrollmentRow, studentRow?: UserRow) {
     userId: row.userId,
     studentId: row.userId,
     courseId: row.courseId,
+    sectionId: row.sectionId,
     status: row.status,
-    section: row.section,
-    scheduleArray: parseJsonArray(row.scheduleArray),
+    section: null,
+    scheduleArray: [],
     dateRequested: row.dateRequested,
     dateEnrolled: row.dateEnrolled,
     grade: row.grade,
@@ -43,6 +56,26 @@ function buildRosterEntry(row: EnrollmentRow, studentRow?: UserRow) {
   };
 }
 
+function toInstructorSectionRow(
+  sectionRow: SectionRow,
+  courseRow: CourseRow,
+  enrolledCount: number,
+): SectionCatalogRow {
+  return {
+    ...sectionRow,
+    courseCode: courseRow.id,
+    courseTitle: courseRow.title,
+    enrolledCount,
+    remainingSeats: Math.max(sectionRow.capacity - enrolledCount, 0),
+  };
+}
+
+function isSeatOccupyingStatus(status: EnrollmentRow["status"]) {
+  return (
+    status === "ongoing" || status === "completed" || status === "finalized"
+  );
+}
+
 export const instructorRoutes = new Hono<{
   Bindings: AppBindings;
   Variables: AppVariables;
@@ -50,7 +83,13 @@ export const instructorRoutes = new Hono<{
 
 instructorRoutes.use("*", requireAuth);
 
-instructorRoutes.get("/classes", async (c) => {
+async function loadInstructorSections(
+  c: Parameters<typeof instructorRoutes.get>[1] extends (
+    ...args: infer T
+  ) => unknown
+    ? T[0]
+    : never,
+) {
   const user = c.get("user");
 
   if (user.role !== "instructor") {
@@ -58,18 +97,31 @@ instructorRoutes.get("/classes", async (c) => {
   }
 
   const db = drizzle(c.env.DB);
-  const assignedCourses = await db
-    .select()
-    .from(courses)
-    .where(eq(courses.instructorId, user.id))
+  const sectionRows = await db
+    .select({ section: sections, course: courses })
+    .from(sections)
+    .innerJoin(courses, eq(sections.courseId, courses.id))
+    .where(eq(sections.instructorId, user.id))
     .all();
 
+  const enrollmentRows = await db.select().from(enrollments).all();
+
+  const activeCounts = new Map<string, number>();
+
+  for (const row of enrollmentRows) {
+    if (!isSeatOccupyingStatus(row.status)) {
+      continue;
+    }
+
+    activeCounts.set(row.sectionId, (activeCounts.get(row.sectionId) ?? 0) + 1);
+  }
+
   const payload = await Promise.all(
-    assignedCourses.map(async (course: CourseRow) => {
+    sectionRows.map(async ({ section, course }) => {
       const rosterRows = await db
         .select()
         .from(enrollments)
-        .where(eq(enrollments.courseId, course.id))
+        .where(eq(enrollments.sectionId, section.id))
         .all();
 
       const roster = await Promise.all(
@@ -79,11 +131,20 @@ instructorRoutes.get("/classes", async (c) => {
             .from(users)
             .where(eq(users.id, row.userId))
             .get();
-          return buildRosterEntry(row, studentRow);
+
+          return buildRosterEntry(row, studentRow ?? undefined);
         }),
       );
 
       return {
+        section: toInstructorSectionRow(
+          section,
+          {
+            ...course,
+            prerequisites: parseJsonArray(course.prerequisites),
+          },
+          activeCounts.get(section.id) ?? 0,
+        ),
         course: {
           ...course,
           prerequisites: parseJsonArray(course.prerequisites),
@@ -93,5 +154,57 @@ instructorRoutes.get("/classes", async (c) => {
     }),
   );
 
-  return c.json({ classes: payload });
-});
+  return c.json({ sections: payload });
+}
+
+instructorRoutes.get("/sections", loadInstructorSections);
+instructorRoutes.get("/classes", loadInstructorSections);
+
+instructorRoutes.post(
+  "/sections/:id/finalize",
+  zValidator(
+    "param",
+    z.object({
+      id: z.string().uuid(),
+    }),
+    enrollmentValidationHook,
+  ),
+  async (c) => {
+    const user = c.get("user");
+    const { id: sectionId } = c.req.valid("param");
+
+    if (user.role !== "instructor") {
+      return c.json({ success: false, error: "Forbidden", field: "auth" }, 403);
+    }
+
+    const db = drizzle(c.env.DB);
+
+    const sectionRow = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, sectionId))
+      .get();
+
+    if (!sectionRow) {
+      return c.json({ message: "Section not found" }, 404);
+    }
+
+    if (sectionRow.instructorId !== user.id) {
+      return c.json(
+        { success: false, error: "Access Denied", field: "auth" },
+        403,
+      );
+    }
+
+    await db
+      .update(enrollments)
+      .set({ status: "finalized" })
+      .where(eq(enrollments.sectionId, sectionId))
+      .run();
+
+    return c.json({
+      message: "Grades finalized",
+      sectionId,
+    });
+  },
+);
