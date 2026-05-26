@@ -76,6 +76,14 @@
           >
             Course Catalog
           </a>
+          <a
+            href={resolve("/admin/sections")}
+            aria-current={page.url.pathname.startsWith("/admin/sections")
+              ? "page"
+              : undefined}
+          >
+            Section Scheduling
+          </a>
         </nav>
 
         <nav aria-label="Primary navigation" class="nav-links mobile-nav">
@@ -94,6 +102,14 @@
               : undefined}
           >
             Course Catalog
+          </a>
+          <a
+            href={resolve("/admin/sections")}
+            aria-current={page.url.pathname.startsWith("/admin/sections")
+              ? "page"
+              : undefined}
+          >
+            Section Scheduling
           </a>
         </nav>
       {:else if session.user.role === "student"}
