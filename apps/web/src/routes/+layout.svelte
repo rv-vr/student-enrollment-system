@@ -162,7 +162,11 @@
         Logout
       </button>
     {:else}
-      <button type="button" class="login-button" onclick={() => goto(resolve("/login"))}>
+      <button
+        type="button"
+        class="login-button"
+        onclick={() => goto(resolve("/login"))}
+      >
         Login
       </button>
     {/if}

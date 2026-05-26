@@ -99,7 +99,11 @@ coursesRoutes.get(
     const { code } = c.req.valid("param");
     const db = drizzle(c.env.DB);
 
-    const course = await db.select().from(courses).where(eq(courses.id, code)).get();
+    const course = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, code))
+      .get();
 
     if (!course) {
       return c.json({ message: "Course not found" }, 404);

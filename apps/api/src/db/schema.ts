@@ -16,8 +16,6 @@ export type SectionScheduleEntry = {
   type: string;
 };
 
-const jsonText = text;
-
 export const users = sqliteTable("users", {
   id: text("id")
     .primaryKey()

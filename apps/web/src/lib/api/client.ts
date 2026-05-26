@@ -47,8 +47,9 @@ export const client = {
   api: {
     instructor: {
       sections: {
-        $get: (...args: Parameters<typeof rpcClient.instructor.sections.$get>) =>
-          rpcClient.instructor.sections.$get(...args),
+        $get: (
+          ...args: Parameters<typeof rpcClient.instructor.sections.$get>
+        ) => rpcClient.instructor.sections.$get(...args),
       },
     },
     enrollments: {

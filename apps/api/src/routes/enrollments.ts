@@ -47,7 +47,9 @@ function normalizeCourseCodeList(value: unknown) {
 }
 
 function isSeatOccupyingStatus(status: EnrollmentRow["status"]) {
-  return status === "ongoing" || status === "completed" || status === "finalized";
+  return (
+    status === "ongoing" || status === "completed" || status === "finalized"
+  );
 }
 
 function normalizeScheduleSlots(value: unknown): SectionScheduleEntry[] {
@@ -70,9 +72,7 @@ function normalizeScheduleSlots(value: unknown): SectionScheduleEntry[] {
       } satisfies SectionScheduleEntry;
     })
     .filter(
-      (
-        slot,
-      ): slot is SectionScheduleEntry =>
+      (slot): slot is SectionScheduleEntry =>
         slot !== null && Boolean(slot.day && slot.time),
     );
 }
@@ -89,7 +89,12 @@ function parseClockTime(value: string) {
   const minute = Number(match[2]);
   const meridiem = match[3];
 
-  if (!Number.isInteger(hour) || !Number.isInteger(minute) || minute < 0 || minute > 59) {
+  if (
+    !Number.isInteger(hour) ||
+    !Number.isInteger(minute) ||
+    minute < 0 ||
+    minute > 59
+  ) {
     return null;
   }
 
@@ -135,7 +140,9 @@ function schedulesOverlap(
   leftSlot: SectionScheduleEntry,
   rightSlot: SectionScheduleEntry,
 ) {
-  if (leftSlot.day.trim().toLowerCase() !== rightSlot.day.trim().toLowerCase()) {
+  if (
+    leftSlot.day.trim().toLowerCase() !== rightSlot.day.trim().toLowerCase()
+  ) {
     return false;
   }
 
@@ -308,7 +315,9 @@ enrollmentsRoutes.post(
       return c.json({ message: "This section is full" }, 400);
     }
 
-    const targetScheduleSlots = normalizeScheduleSlots(sectionRow.scheduleArray);
+    const targetScheduleSlots = normalizeScheduleSlots(
+      sectionRow.scheduleArray,
+    );
 
     if (targetScheduleSlots.length > 0) {
       const activeScheduleRows = await db
@@ -479,7 +488,10 @@ enrollmentsRoutes.post(
       .where(eq(sections.id, enrollmentRow.sectionId))
       .get();
 
-    await db.delete(enrollments).where(eq(enrollments.id, enrollmentRow.id)).run();
+    await db
+      .delete(enrollments)
+      .where(eq(enrollments.id, enrollmentRow.id))
+      .run();
     const studentRow = await db
       .select()
       .from(users)
@@ -548,7 +560,10 @@ enrollmentsRoutes.patch(
     }
 
     if (sectionRow.instructorId !== user.id) {
-      return c.json({ success: false, error: "Access Denied", field: "auth" }, 403);
+      return c.json(
+        { success: false, error: "Access Denied", field: "auth" },
+        403,
+      );
     }
 
     const courseRow = await db

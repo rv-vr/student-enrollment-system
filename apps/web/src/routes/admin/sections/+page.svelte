@@ -74,7 +74,9 @@
       return "No schedule";
     }
 
-    return items.map((item) => `${item.day} ${item.time} · ${item.type}`).join(" | ");
+    return items
+      .map((item) => `${item.day} ${item.time} · ${item.type}`)
+      .join(" | ");
   }
 
   async function viewRoster(section: SectionCatalogEntry) {
@@ -126,11 +128,12 @@
     isFetching = true;
 
     try {
-      const [courseResponse, instructorResponse, sectionResponse] = await Promise.all([
-        getCourses(),
-        getUsers("instructor"),
-        getSections(),
-      ]);
+      const [courseResponse, instructorResponse, sectionResponse] =
+        await Promise.all([
+          getCourses(),
+          getUsers("instructor"),
+          getSections(),
+        ]);
 
       courses = courseResponse ?? [];
       instructors = instructorResponse.users ?? [];
@@ -386,7 +389,10 @@
 
             <label>
               <span>Time</span>
-              <input bind:value={scheduleDraft.time} placeholder="08:00 - 09:30" />
+              <input
+                bind:value={scheduleDraft.time}
+                placeholder="08:00 - 09:30"
+              />
             </label>
 
             <label>
@@ -394,8 +400,12 @@
               <input bind:value={scheduleDraft.type} placeholder="Lecture" />
             </label>
 
-            <div class="schedule-action">
-              <button type="button" class="secondary-button" onclick={addScheduleItem}>
+            <div class="schedule-action span-3">
+              <button
+                type="button"
+                class="secondary-button"
+                onclick={addScheduleItem}
+              >
                 Add Schedule Item
               </button>
             </div>
@@ -443,7 +453,9 @@
           <p class="eyebrow">Live Sections</p>
           <h2>Active schedule</h2>
         </div>
-        <span class="panel-badge">{isFetching ? "Refreshing" : "Live view"}</span>
+        <span class="panel-badge"
+          >{isFetching ? "Refreshing" : "Live view"}</span
+        >
       </div>
 
       {#if isFetching}
@@ -451,8 +463,12 @@
       {:else if sections.length === 0}
         <div class="empty-copy">No live sections yet.</div>
       {:else}
-        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
+        <div
+          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+        >
+          <table
+            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+          >
             <thead>
               <tr>
                 <th scope="col" class="whitespace-nowrap">Course</th>
@@ -468,8 +484,12 @@
               {#each sections as section (section.id)}
                 <tr>
                   <td class="whitespace-nowrap">
-                    <strong class="whitespace-nowrap">{section.courseCode}</strong>
-                    <div class="table-subcopy max-w-[200px] truncate">{section.courseTitle}</div>
+                    <strong class="whitespace-nowrap"
+                      >{section.courseCode}</strong
+                    >
+                    <div class="table-subcopy max-w-[200px] truncate">
+                      {section.courseTitle}
+                    </div>
                   </td>
                   <td class="whitespace-nowrap">{section.sectionName}</td>
                   <td class="whitespace-nowrap">{section.instructorName}</td>
@@ -480,7 +500,9 @@
                     </span>
                   </td>
                   <td>
-                    <div class="schedule-summary">{formatSchedule(section.scheduleArray)}</div>
+                    <div class="schedule-summary">
+                      {formatSchedule(section.scheduleArray)}
+                    </div>
                   </td>
                   <td class="whitespace-nowrap">
                     <button
@@ -519,8 +541,12 @@
       {:else if roster.length === 0}
         <div class="empty-copy">No enrollments found for this section.</div>
       {:else}
-        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
+        <div
+          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+        >
+          <table
+            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+          >
             <thead>
               <tr>
                 <th scope="col" class="whitespace-nowrap">Student ID</th>
@@ -536,7 +562,9 @@
                   <td class="whitespace-nowrap">{row.student.id}</td>
                   <td>
                     <div class="max-w-[200px] truncate">{row.student.name}</div>
-                    <div class="table-subcopy whitespace-nowrap">{row.student.username}</div>
+                    <div class="table-subcopy whitespace-nowrap">
+                      {row.student.username}
+                    </div>
                   </td>
                   <td class="whitespace-nowrap">
                     <span class="status-pill">{row.status}</span>
@@ -566,8 +594,16 @@
     padding: clamp(1.25rem, 2vw, 2rem);
     color: #f8fafc;
     background:
-      radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 38%),
-      radial-gradient(circle at top right, rgba(168, 85, 247, 0.16), transparent 32%),
+      radial-gradient(
+        circle at top left,
+        rgba(56, 189, 248, 0.22),
+        transparent 38%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(168, 85, 247, 0.16),
+        transparent 32%
+      ),
       linear-gradient(180deg, #020617 0%, #0f172a 100%);
   }
 
@@ -663,9 +699,10 @@
   }
 
   .admin-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.18fr);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
     margin-top: 1rem;
   }
 
@@ -746,7 +783,11 @@
   .schedule-grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .span-3 {
+    grid-column: span 3;
   }
 
   label {
@@ -921,9 +962,7 @@
   }
 
   @media (max-width: 980px) {
-    .hero-card,
-    .admin-grid {
-      grid-template-columns: 1fr;
+    .hero-card {
       flex-direction: column;
     }
 

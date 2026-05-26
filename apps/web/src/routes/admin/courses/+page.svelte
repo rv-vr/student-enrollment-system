@@ -159,7 +159,8 @@
       courses = [
         createdCourse,
         ...courses.filter(
-          (course) => normalizeCode(course.code) !== normalizeCode(createdCourse.code),
+          (course) =>
+            normalizeCode(course.code) !== normalizeCode(createdCourse.code),
         ),
       ];
       createdCourses = [createdCourse, ...createdCourses];
@@ -307,7 +308,7 @@
             />
           </label>
 
-          <label class="span-2">
+          <label class="span-3">
             <span>Description</span>
             <textarea
               bind:value={form.description}
@@ -366,22 +367,30 @@
           <p class="eyebrow">Catalog Snapshot</p>
           <h2>Active catalog</h2>
         </div>
-        <span class="panel-badge">{isFetching ? "Refreshing" : "Live view"}</span>
+        <span class="panel-badge"
+          >{isFetching ? "Refreshing" : "Live view"}</span
+        >
       </div>
 
       {#if isFetching}
         <div class="empty-copy">Loading course catalog…</div>
       {:else if courses.length === 0}
-        <div class="empty-copy">No courses registered yet.</div>
+        <div class="empty-state">No courses registered yet.</div>
       {:else}
-        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
+        <div
+          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+        >
+          <table
+            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+          >
             <thead>
               <tr>
                 <th scope="col" class="whitespace-nowrap">Code</th>
                 <th scope="col" class="whitespace-nowrap">Title</th>
                 <th scope="col" class="whitespace-nowrap">Credits</th>
-                <th scope="col" class="whitespace-nowrap">Remaining Seats / Capacity</th>
+                <th scope="col" class="whitespace-nowrap"
+                  >Remaining Seats / Capacity</th
+                >
                 <th scope="col" class="whitespace-nowrap">Prerequisites</th>
               </tr>
             </thead>
@@ -392,9 +401,13 @@
                     <strong class="whitespace-nowrap">{course.code}</strong>
                   </td>
                   <td>
-                    <div class="course-title max-w-[200px] truncate">{course.title}</div>
+                    <div class="course-title max-w-[200px] truncate">
+                      {course.title}
+                    </div>
                     {#if course.description}
-                      <div class="course-description max-w-[200px] truncate">{course.description}</div>
+                      <div class="course-description max-w-[200px] truncate">
+                        {course.description}
+                      </div>
                     {/if}
                   </td>
                   <td class="whitespace-nowrap">{formatCredits(course)}</td>
@@ -403,7 +416,9 @@
                       {course.remainingSeats} / {course.capacity}
                     </span>
                   </td>
-                  <td class="max-w-[200px] truncate">{formatPrerequisites(course)}</td>
+                  <td class="max-w-[200px] truncate"
+                    >{formatPrerequisites(course)}</td
+                  >
                 </tr>
               {/each}
             </tbody>
@@ -420,8 +435,16 @@
     padding: clamp(1.25rem, 2vw, 2rem);
     color: #f8fafc;
     background:
-      radial-gradient(circle at top left, rgba(14, 165, 233, 0.24), transparent 38%),
-      radial-gradient(circle at top right, rgba(234, 179, 8, 0.16), transparent 32%),
+      radial-gradient(
+        circle at top left,
+        rgba(14, 165, 233, 0.24),
+        transparent 38%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(234, 179, 8, 0.16),
+        transparent 32%
+      ),
       linear-gradient(180deg, #020617 0%, #0f172a 100%);
   }
 
@@ -517,9 +540,10 @@
   }
 
   .admin-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.18fr);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
     margin-top: 1rem;
   }
 
@@ -568,11 +592,11 @@
   .form-grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .span-2 {
-    grid-column: span 2;
+  .span-3 {
+    grid-column: span 3;
   }
 
   label {
@@ -662,6 +686,13 @@
     color: #94a3b8;
   }
 
+  .empty-state {
+    border-radius: 1rem;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.6);
+    color: #94a3b8;
+  }
+
   .form-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
@@ -742,9 +773,7 @@
   }
 
   @media (max-width: 980px) {
-    .hero-card,
-    .admin-grid {
-      grid-template-columns: 1fr;
+    .hero-card {
       flex-direction: column;
     }
 
@@ -759,7 +788,7 @@
       grid-template-columns: 1fr;
     }
 
-    .span-2 {
+    .span-3 {
       grid-column: span 1;
     }
 

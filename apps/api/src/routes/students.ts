@@ -4,7 +4,13 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { courses, enrollments, notifications, sections, users } from "../db/schema";
+import {
+  courses,
+  enrollments,
+  notifications,
+  sections,
+  users,
+} from "../db/schema";
 import { studentIdParamSchema, studentValidationHook } from "../validators";
 
 type CourseRow = typeof courses.$inferSelect;

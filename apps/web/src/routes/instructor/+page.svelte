@@ -34,7 +34,9 @@
 
   const isLocked = $derived(roster.some((row) => row.status === "finalized"));
   const selectedSection = $derived(
-    assignedSections.find((section) => section.section.id === selectedSectionId) ?? null,
+    assignedSections.find(
+      (section) => section.section.id === selectedSectionId,
+    ) ?? null,
   );
 
   function toMessage(error: unknown, fallback: string) {
@@ -49,7 +51,9 @@
     roster = (section.roster ?? []).map((entry) => ({
       ...entry,
       draftGrade:
-        entry.grade === null || entry.grade === undefined ? "" : String(entry.grade),
+        entry.grade === null || entry.grade === undefined
+          ? ""
+          : String(entry.grade),
       draftRemark: entry.remark ?? "",
       saveState: "idle",
       saveMessage: "",
@@ -78,9 +82,10 @@
       }
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { error?: unknown; message?: unknown }
-          | null;
+        const payload = (await response.json().catch(() => null)) as {
+          error?: unknown;
+          message?: unknown;
+        } | null;
 
         throw new Error(
           typeof payload?.error === "string"
@@ -97,9 +102,11 @@
 
       const nextSelectedId =
         preferredSectionId &&
-        assignedSections.some((section) => section.section.id === preferredSectionId)
+        assignedSections.some(
+          (section) => section.section.id === preferredSectionId,
+        )
           ? preferredSectionId
-          : assignedSections[0]?.section.id ?? "";
+          : (assignedSections[0]?.section.id ?? "");
 
       selectedSectionId = nextSelectedId;
       lastLoadedSectionId = nextSelectedId;
@@ -135,7 +142,8 @@
     }
 
     const grade = row.draftGrade.trim() === "" ? null : row.draftGrade.trim();
-    const remark = row.draftRemark.trim() === "" ? null : row.draftRemark.trim();
+    const remark =
+      row.draftRemark.trim() === "" ? null : row.draftRemark.trim();
 
     row.saveState = "saving";
     row.saveMessage = "";
@@ -148,9 +156,10 @@
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { error?: unknown; message?: unknown }
-          | null;
+        const payload = (await response.json().catch(() => null)) as {
+          error?: unknown;
+          message?: unknown;
+        } | null;
 
         throw new Error(
           typeof payload?.error === "string"
@@ -161,13 +170,14 @@
         );
       }
 
-      const payload = (await response.json().catch(() => null)) as
-        | { enrollment?: { grade?: number | null; remark?: string | null } }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        enrollment?: { grade?: number | null; remark?: string | null };
+      } | null;
 
       if (payload?.enrollment) {
         row.draftGrade =
-          payload.enrollment.grade === null || payload.enrollment.grade === undefined
+          payload.enrollment.grade === null ||
+          payload.enrollment.grade === undefined
             ? ""
             : String(payload.enrollment.grade);
         row.draftRemark = payload.enrollment.remark ?? "";
@@ -273,7 +283,10 @@
 <section class="instructor-page">
   {#if isLocked}
     <div class="locked-banner" role="status">
-      <strong>⚠️ This ledger has been finalized and submitted to the registrar. Grades are read-only.</strong>
+      <strong
+        >⚠️ This ledger has been finalized and submitted to the registrar.
+        Grades are read-only.</strong
+      >
     </div>
   {/if}
 
@@ -294,8 +307,12 @@
   {/if}
 
   {#if selectedSectionId}
-    <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-      <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
+    <div
+      class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+    >
+      <table
+        class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+      >
         <thead>
           <tr>
             <th class="whitespace-nowrap">Student ID</th>
@@ -308,20 +325,32 @@
         <tbody>
           {#if roster.length === 0}
             <tr>
-              <td colspan="5" class="whitespace-nowrap">No enrolled students found.</td>
+              <td colspan="5" class="whitespace-nowrap"
+                >No enrolled students found.</td
+              >
             </tr>
           {:else}
             {#each roster as row (row.id)}
               <tr>
                 <td class="whitespace-nowrap">{row.studentId}</td>
                 <td>
-                  <span class="block max-w-[200px] truncate">{row.student?.name ?? "Unknown student"}</span>
+                  <span class="block max-w-[200px] truncate"
+                    >{row.student?.name ?? "Unknown student"}</span
+                  >
                 </td>
                 <td class="whitespace-nowrap">
-                  <input type="text" bind:value={row.draftGrade} disabled={isLocked} />
+                  <input
+                    type="text"
+                    bind:value={row.draftGrade}
+                    disabled={isLocked}
+                  />
                 </td>
                 <td>
-                  <input type="text" bind:value={row.draftRemark} disabled={isLocked} />
+                  <input
+                    type="text"
+                    bind:value={row.draftRemark}
+                    disabled={isLocked}
+                  />
                 </td>
                 <td class="whitespace-nowrap">
                   <div class="row-actions">
@@ -350,7 +379,12 @@
 
     {#if !isLocked}
       <div class="footer-actions">
-        <button type="button" class="finalize-button" onclick={() => void finalizeLedger()} disabled={finalizing || !selectedSection || roster.length === 0}>
+        <button
+          type="button"
+          class="finalize-button"
+          onclick={() => void finalizeLedger()}
+          disabled={finalizing || !selectedSection || roster.length === 0}
+        >
           {finalizing ? "Finalizing..." : "Finalize & Lock Ledger"}
         </button>
       </div>

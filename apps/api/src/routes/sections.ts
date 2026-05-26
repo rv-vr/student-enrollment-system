@@ -94,13 +94,8 @@ sectionsRoutes.post(
   requireAdmin,
   zValidator("json", sectionCreateSchema, sectionValidationHook),
   async (c) => {
-    const {
-      courseCode,
-      instructorId,
-      sectionName,
-      capacity,
-      scheduleArray,
-    } = c.req.valid("json");
+    const { courseCode, instructorId, sectionName, capacity, scheduleArray } =
+      c.req.valid("json");
     const db = drizzle(c.env.DB);
 
     const courseRow = await db
@@ -109,7 +104,10 @@ sectionsRoutes.post(
       .where(eq(courses.id, courseCode))
       .get();
     if (!courseRow) {
-      return c.json({ success: false, error: "Course not found", field: "courseCode" }, 404);
+      return c.json(
+        { success: false, error: "Course not found", field: "courseCode" },
+        404,
+      );
     }
 
     const instructorRow = await db
@@ -118,7 +116,14 @@ sectionsRoutes.post(
       .where(eq(users.id, instructorId))
       .get();
     if (!instructorRow || instructorRow.role !== "instructor") {
-      return c.json({ success: false, error: "Instructor not found", field: "instructorId" }, 404);
+      return c.json(
+        {
+          success: false,
+          error: "Instructor not found",
+          field: "instructorId",
+        },
+        404,
+      );
     }
 
     const sectionId = crypto.randomUUID();

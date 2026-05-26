@@ -2,7 +2,12 @@
   import { browser } from "$app/environment";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import { client, getCourses, getSections, getStudentCourses } from "$lib/api/client";
+  import {
+    client,
+    getCourses,
+    getSections,
+    getStudentCourses,
+  } from "$lib/api/client";
   import type {
     CourseCatalogEntry,
     SectionCatalogEntry,
@@ -51,7 +56,9 @@
       return "TBA";
     }
 
-    return items.map((item) => `${item.day} ${item.time} · ${item.type}`).join(" | ");
+    return items
+      .map((item) => `${item.day} ${item.time} · ${item.type}`)
+      .join(" | ");
   }
 
   function toErrorMessage(value: unknown) {
@@ -95,14 +102,18 @@
     feedback = null;
 
     try {
-      const [sectionResponse, courseResponse, studentCoursesResponse] = await Promise.all([
-        getSections(),
-        getCourses(),
-        getStudentCourses(studentId),
-      ]);
+      const [sectionResponse, courseResponse, studentCoursesResponse] =
+        await Promise.all([
+          getSections(),
+          getCourses(),
+          getStudentCourses(studentId),
+        ]);
 
       const creditsByCourseCode = new Map(
-        (courseResponse ?? []).map((course) => [course.code, getCourseCredits(course)]),
+        (courseResponse ?? []).map((course) => [
+          course.code,
+          getCourseCredits(course),
+        ]),
       );
 
       const sectionRows = (sectionResponse.sections ?? []).map((section) => ({
@@ -120,12 +131,15 @@
           );
 
           const courseCode =
-            matchingSection?.courseCode ?? enrollment.course?.code ?? enrollment.courseCode;
+            matchingSection?.courseCode ??
+            enrollment.course?.code ??
+            enrollment.courseCode;
           const courseTitle =
             matchingSection?.courseTitle ??
             enrollment.course?.title ??
             enrollment.courseCode;
-          const sectionName = matchingSection?.sectionName ?? "Unassigned section";
+          const sectionName =
+            matchingSection?.sectionName ?? "Unassigned section";
           const instructorName = matchingSection?.instructorName ?? "TBA";
           const scheduleArray =
             matchingSection?.scheduleArray ?? enrollment.scheduleArray ?? [];
@@ -178,7 +192,9 @@
       return;
     }
 
-    const confirmed = confirm("Are you sure you want to register for this class section?");
+    const confirmed = confirm(
+      "Are you sure you want to register for this class section?",
+    );
 
     if (!confirmed) {
       return;
@@ -193,11 +209,10 @@
       });
 
       if (!response.ok) {
-        const payload = await response
-          .json()
-          .catch(() => null) as
-          | { error?: unknown; message?: unknown }
-          | null;
+        const payload = (await response.json().catch(() => null)) as {
+          error?: unknown;
+          message?: unknown;
+        } | null;
 
         throw new Error(
           typeof payload?.error === "string"
@@ -220,7 +235,10 @@
 
       const refreshed = await getStudentCourses(session.user.id);
       const creditsByCourseCode = new Map(
-        (await getCourses()).map((course) => [course.code, getCourseCredits(course)]),
+        (await getCourses()).map((course) => [
+          course.code,
+          getCourseCredits(course),
+        ]),
       );
 
       profile = refreshed.student ?? null;
@@ -231,7 +249,9 @@
         );
 
         const courseCode =
-          matchingSection?.courseCode ?? enrollment.course?.code ?? enrollment.courseCode;
+          matchingSection?.courseCode ??
+          enrollment.course?.code ??
+          enrollment.courseCode;
         const courseTitle =
           matchingSection?.courseTitle ??
           enrollment.course?.title ??
@@ -243,7 +263,8 @@
           courseTitle,
           sectionName: matchingSection?.sectionName ?? "Unassigned section",
           instructorName: matchingSection?.instructorName ?? "TBA",
-          scheduleArray: matchingSection?.scheduleArray ?? enrollment.scheduleArray ?? [],
+          scheduleArray:
+            matchingSection?.scheduleArray ?? enrollment.scheduleArray ?? [],
           status: enrollment.status,
           grade: enrollment.grade ?? null,
           remark: enrollment.remark ?? null,
@@ -326,14 +347,21 @@
       <p class="eyebrow">Student Profile</p>
       <h2>{session?.user.name ?? profile?.name ?? "Student"}</h2>
       <p class="profile-subcopy">
-        Academic Student ID: <strong>{profile?.username ?? session?.user.id ?? "N/A"}</strong>
+        Academic Student ID: <strong
+          >{profile?.username ?? session?.user.id ?? "N/A"}</strong
+        >
       </p>
     </div>
     <span class="profile-badge">Status: Active Student</span>
   </section>
 
   {#if feedback}
-    <div class="banner" data-tone={feedback.tone} role="status" aria-live="polite">
+    <div
+      class="banner"
+      data-tone={feedback.tone}
+      role="status"
+      aria-live="polite"
+    >
       {feedback.message}
     </div>
   {/if}
@@ -341,142 +369,169 @@
   <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full">
     <div class="xl:col-span-7 space-y-4 w-full">
       <section class="panel offerings-panel">
-      <div class="panel-header">
-        <div>
-          <p class="eyebrow">Available Class Offerings</p>
-          <h2>Live sections</h2>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Available Class Offerings</p>
+            <h2>Live sections</h2>
+          </div>
+          <span class="panel-chip">{sections.length} offerings</span>
         </div>
-        <span class="panel-chip">{sections.length} offerings</span>
-      </div>
 
-      <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-        <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
-          <thead>
-            <tr>
-              <th scope="col" class="whitespace-nowrap">Course</th>
-              <th scope="col" class="whitespace-nowrap">Instructor</th>
-              <th scope="col" class="whitespace-nowrap">Schedule</th>
-              <th scope="col" class="whitespace-nowrap">Seats</th>
-              <th scope="col" class="whitespace-nowrap">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each sections as section (section.id)}
-              <tr>
-                <td class="whitespace-nowrap">
-                  <div class="course-block">
-                    <strong class="whitespace-nowrap">{section.courseCode}</strong>
-                    <span class="max-w-[200px] truncate">{section.courseTitle}</span>
-                    <small>{section.sectionName}</small>
-                  </div>
-                </td>
-                <td class="whitespace-nowrap">{section.instructorName}</td>
-                <td>
-                  <div class="schedule-list">
-                    {#each section.scheduleArray as scheduleItem, index (index)}
-                      <span>{formatSchedule([scheduleItem])}</span>
-                    {/each}
-                    {#if section.scheduleArray.length === 0}
-                      <span>TBA</span>
-                    {/if}
-                  </div>
-                </td>
-                <td class="whitespace-nowrap">
-                  <span class="seat-pill">
-                    {section.remainingSeats} / {section.capacity}
-                  </span>
-                </td>
-                <td class="whitespace-nowrap">
-                  <button
-                    type="button"
-                    class="enroll-button"
-                    onclick={() => handleEnroll(section.id)}
-                    disabled={isLoading || section.remainingSeats <= 0}
-                  >
-                    {#if section.remainingSeats <= 0}
-                      Full
-                    {:else if isLoading}
-                      Enrolling…
-                    {:else}
-                      Enroll
-                    {/if}
-                  </button>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-      </section>
-    </div>
-
-    <div class="xl:col-span-5 space-y-4 w-full">
-      <section class="panel schedule-panel">
-      <div class="panel-header">
-        <div>
-          <p class="eyebrow">My Schedule Matrix</p>
-          <h2>My Schedule / Enrollments</h2>
-        </div>
-        <span class="panel-chip">{myEnrollments.length} records</span>
-      </div>
-
-      {#if myEnrollments.length === 0}
-        <div class="empty-state">
-          <h3>No active enrollments</h3>
-          <p>Select a section from the left to start building your schedule.</p>
-        </div>
-      {:else}
-        <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-          <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
+        <div
+          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+        >
+          <table
+            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+          >
             <thead>
               <tr>
                 <th scope="col" class="whitespace-nowrap">Course</th>
-                <th scope="col" class="whitespace-nowrap">Section</th>
-                <th scope="col" class="whitespace-nowrap">Status</th>
-                <th scope="col" class="whitespace-nowrap">Final Grade</th>
+                <th scope="col" class="whitespace-nowrap">Instructor</th>
+                <th scope="col" class="whitespace-nowrap">Schedule</th>
+                <th scope="col" class="whitespace-nowrap">Seats</th>
+                <th scope="col" class="whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody>
-              {#each myEnrollments as enrollment (enrollment.id)}
+              {#each sections as section (section.id)}
                 <tr>
                   <td class="whitespace-nowrap">
                     <div class="course-block">
-                      <strong class="whitespace-nowrap">{enrollment.courseCode}</strong>
-                      <span class="max-w-[200px] truncate">{enrollment.courseTitle}</span>
+                      <strong class="whitespace-nowrap"
+                        >{section.courseCode}</strong
+                      >
+                      <span class="max-w-[200px] truncate"
+                        >{section.courseTitle}</span
+                      >
+                      <small>{section.sectionName}</small>
                     </div>
                   </td>
+                  <td class="whitespace-nowrap">{section.instructorName}</td>
                   <td>
-                    <div>{enrollment.sectionName} · {enrollment.instructorName}</div>
-                    <div class="schedule-list compact">
-                      {#each enrollment.scheduleArray as scheduleItem, index (index)}
+                    <div class="schedule-list">
+                      {#each section.scheduleArray as scheduleItem, index (index)}
                         <span>{formatSchedule([scheduleItem])}</span>
                       {/each}
-                      {#if enrollment.scheduleArray.length === 0}
+                      {#if section.scheduleArray.length === 0}
                         <span>TBA</span>
                       {/if}
                     </div>
                   </td>
                   <td class="whitespace-nowrap">
-                    <span class="status-pill" data-tone={toStatusTone(enrollment.status)}>
-                      {toStatusLabel(enrollment.status)}
+                    <span class="seat-pill">
+                      {section.remainingSeats} / {section.capacity}
                     </span>
                   </td>
                   <td class="whitespace-nowrap">
-                    {#if hasFinalGrade(enrollment.status)}
-                      <div class="grade-cell finalized-grade">
-                        <span class="grade-value">{enrollment.grade ?? "-"}</span>
-                        <span class="grade-remark">{enrollment.remark ?? "No remark"}</span>
-                      </div>
-                    {:else}
-                      <span class="grade-value">-</span>
-                    {/if}
+                    <button
+                      type="button"
+                      class="enroll-button"
+                      onclick={() => handleEnroll(section.id)}
+                      disabled={isLoading || section.remainingSeats <= 0}
+                    >
+                      {#if section.remainingSeats <= 0}
+                        Full
+                      {:else if isLoading}
+                        Enrolling…
+                      {:else}
+                        Enroll
+                      {/if}
+                    </button>
                   </td>
                 </tr>
               {/each}
             </tbody>
           </table>
         </div>
-      {/if}
+      </section>
+    </div>
+
+    <div class="xl:col-span-5 space-y-4 w-full">
+      <section class="panel schedule-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">My Schedule Matrix</p>
+            <h2>My Schedule / Enrollments</h2>
+          </div>
+          <span class="panel-chip">{myEnrollments.length} records</span>
+        </div>
+
+        {#if myEnrollments.length === 0}
+          <div class="empty-state">
+            <h3>No active enrollments</h3>
+            <p>
+              Select a section from the left to start building your schedule.
+            </p>
+          </div>
+        {:else}
+          <div
+            class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+          >
+            <table
+              class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+            >
+              <thead>
+                <tr>
+                  <th scope="col" class="whitespace-nowrap">Course</th>
+                  <th scope="col" class="whitespace-nowrap">Section</th>
+                  <th scope="col" class="whitespace-nowrap">Status</th>
+                  <th scope="col" class="whitespace-nowrap">Final Grade</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each myEnrollments as enrollment (enrollment.id)}
+                  <tr>
+                    <td class="whitespace-nowrap">
+                      <div class="course-block">
+                        <strong class="whitespace-nowrap"
+                          >{enrollment.courseCode}</strong
+                        >
+                        <span class="max-w-[200px] truncate"
+                          >{enrollment.courseTitle}</span
+                        >
+                      </div>
+                    </td>
+                    <td>
+                      <div>
+                        {enrollment.sectionName} · {enrollment.instructorName}
+                      </div>
+                      <div class="schedule-list compact">
+                        {#each enrollment.scheduleArray as scheduleItem, index (index)}
+                          <span>{formatSchedule([scheduleItem])}</span>
+                        {/each}
+                        {#if enrollment.scheduleArray.length === 0}
+                          <span>TBA</span>
+                        {/if}
+                      </div>
+                    </td>
+                    <td class="whitespace-nowrap">
+                      <span
+                        class="status-pill"
+                        data-tone={toStatusTone(enrollment.status)}
+                      >
+                        {toStatusLabel(enrollment.status)}
+                      </span>
+                    </td>
+                    <td class="whitespace-nowrap">
+                      {#if hasFinalGrade(enrollment.status)}
+                        <div class="grade-cell finalized-grade">
+                          <span class="grade-value"
+                            >{enrollment.grade ?? "-"}</span
+                          >
+                          <span class="grade-remark"
+                            >{enrollment.remark ?? "No remark"}</span
+                          >
+                        </div>
+                      {:else}
+                        <span class="grade-value">-</span>
+                      {/if}
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {/if}
       </section>
     </div>
   </div>
@@ -486,8 +541,16 @@
   :global(body) {
     margin: 0;
     background:
-      radial-gradient(circle at top left, rgba(255, 205, 110, 0.18), transparent 28%),
-      radial-gradient(circle at top right, rgba(85, 145, 255, 0.12), transparent 24%),
+      radial-gradient(
+        circle at top left,
+        rgba(255, 205, 110, 0.18),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(85, 145, 255, 0.12),
+        transparent 24%
+      ),
       linear-gradient(180deg, #f6f2ea 0%, #eef3f8 100%);
     color: #142033;
   }

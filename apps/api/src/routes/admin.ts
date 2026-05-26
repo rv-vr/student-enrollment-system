@@ -7,7 +7,13 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { courses, enrollments, notifications, sections, users } from "../db/schema";
+import {
+  courses,
+  enrollments,
+  notifications,
+  sections,
+  users,
+} from "../db/schema";
 import { generateAcademicUsername } from "../utils/idGenerator";
 import {
   adminDecisionSchema,
@@ -62,9 +68,7 @@ function buildEnrollmentViewRow(
     courseId: row.courseId,
     courseCode: row.courseId,
     sectionId: row.sectionId,
-    section: sectionRow
-      ? { ...sectionRow }
-      : null,
+    section: sectionRow ? { ...sectionRow } : null,
     course: courseRow
       ? { ...courseRow, prerequisites: parseJsonArray(courseRow.prerequisites) }
       : null,
@@ -391,7 +395,12 @@ adminRoutes.patch(
 
     return c.json({
       message: "Enrollment request decision recorded",
-      enrollment: buildEnrollmentViewRow(updated, courseRow, sectionRow, studentRow),
+      enrollment: buildEnrollmentViewRow(
+        updated,
+        courseRow,
+        sectionRow,
+        studentRow,
+      ),
       notification,
     });
   },

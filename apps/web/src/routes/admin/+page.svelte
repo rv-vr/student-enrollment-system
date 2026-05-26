@@ -112,15 +112,29 @@
         No pending enrollment requests.
       </div>
     {:else}
-      <div class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-        <table class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500">
+      <div
+        class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+      >
+        <table
+          class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+        >
           <thead class="bg-slate-900/80 text-slate-300">
             <tr>
-              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap">Student</th>
-              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap">Course</th>
-              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap">Status</th>
-              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap">Requested</th>
-              <th scope="col" class="px-6 py-4 font-medium text-right whitespace-nowrap"
+              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap"
+                >Student</th
+              >
+              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap"
+                >Course</th
+              >
+              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap"
+                >Status</th
+              >
+              <th scope="col" class="px-6 py-4 font-medium whitespace-nowrap"
+                >Requested</th
+              >
+              <th
+                scope="col"
+                class="px-6 py-4 font-medium text-right whitespace-nowrap"
                 >Action</th
               >
             </tr>
@@ -132,7 +146,9 @@
                   <div class="font-semibold text-white">
                     {request.student?.name ?? request.studentId}
                   </div>
-                  <div class="text-xs text-slate-400 whitespace-nowrap">{request.studentId}</div>
+                  <div class="text-xs text-slate-400 whitespace-nowrap">
+                    {request.studentId}
+                  </div>
                 </td>
                 <td class="px-6 py-4 align-top">
                   <div class="font-semibold text-cyan-200 whitespace-nowrap">
@@ -154,7 +170,9 @@
                     {request.status}
                   </span>
                 </td>
-                <td class="px-6 py-4 align-top text-slate-300 whitespace-nowrap">
+                <td
+                  class="px-6 py-4 align-top text-slate-300 whitespace-nowrap"
+                >
                   {request.createdAt}
                 </td>
                 <td class="px-6 py-4 align-top whitespace-nowrap">

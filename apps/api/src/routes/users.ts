@@ -48,17 +48,13 @@ export const usersRoutes = new Hono<{
 usersRoutes.use("*", requireAuth);
 usersRoutes.use("*", requireAdmin);
 
-usersRoutes.get(
-  "/",
-  zValidator("query", userQuerySchema),
-  async (c) => {
-    const { role } = c.req.valid("query");
-    const db = drizzle(c.env.DB);
+usersRoutes.get("/", zValidator("query", userQuerySchema), async (c) => {
+  const { role } = c.req.valid("query");
+  const db = drizzle(c.env.DB);
 
-    const rows = role
-      ? await db.select().from(users).where(eq(users.role, role)).all()
-      : await db.select().from(users).all();
+  const rows = role
+    ? await db.select().from(users).where(eq(users.role, role)).all()
+    : await db.select().from(users).all();
 
-    return c.json({ users: rows.map((row) => toPublicUserRow(row)) });
-  },
-);
+  return c.json({ users: rows.map((row) => toPublicUserRow(row)) });
+});
