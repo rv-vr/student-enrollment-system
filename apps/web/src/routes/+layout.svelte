@@ -15,7 +15,6 @@
     Avatar,
     Dropdown,
     DropdownHeader,
-    DropdownDivider,
     DropdownItem,
     uiHelpers,
   } from "flowbite-svelte";

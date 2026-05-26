@@ -8,9 +8,7 @@ node_modules
 # Local env files
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*.local
 .dev.vars
 
 # Testing
@@ -19,53 +17,20 @@ coverage
 # Turbo
 .turbo
 
-# Vercel
-.vercel
-
-# Build Outputs
+# Outputs
 .next/
 out/
 build
 dist
+.svelte-kit/
+.wrangler/
 
-
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Misc
+# OS
 .DS_Store
+Thumbs.db
 *.pem
 
-# Dependency directories
-node_modules/
-.pnpm-store/
-
-# Next.js / SvelteKit / Vite build outputs
-.svelte-kit/
-dist/
-.turbo/
-
-# Local Environment files
-.env
-.env*.local
-wrangler.toml      # if it contains real cloudflare credentials
-
-# IDE files
-.DS_Store
-.vscode/           # NOTE: Keep this IF you want to share your mcp configs with peers,
-                   # but ignore it if it contains personal paths.
-
-apps/**/.wrangler/
-# Monorepo build outputs
-apps/**/dist/
-packages/**/dist/
-apps/**/build/
-packages/**/build/
-
-# .gitignore
-.wrangler/
+# Database
 *.db
 *.sqlite
 
@@ -74,4 +39,6 @@ apps/api/src/db/production-seed.sql
 apps/api/src/db/generate-production-seed.ts
 *.csv
 *.pdf
+
+# Internal
 .gemini/
