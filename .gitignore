@@ -68,3 +68,9 @@ packages/**/build/
 .wrangler/
 *.db
 *.sqlite
+
+# Sensitive Academic Production Seed Data
+apps/api/src/db/production-seed.sql
+apps/api/src/db/generate-production-seed.ts
+*.csv
+*.pdf
