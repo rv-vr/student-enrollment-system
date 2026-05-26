@@ -2,13 +2,17 @@ import { zValidator } from "@hono/zod-validator";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
-import { z } from "zod";
 
 import { requireAuth, type AppBindings, type AppVariables } from "../auth";
-import { courses, enrollments, sections, users } from "../db/schema";
+import {
+  courses,
+  enrollments,
+  sections,
+  users,
+  type SectionScheduleEntry,
+} from "../db/schema";
 import {
   dropSchema,
-  enrollSchema,
   enrollmentValidationHook,
   instructorGradeUpdateSchema,
   sectionEnrollSchema,
@@ -40,6 +44,105 @@ function normalizeCourseCodeList(value: unknown) {
   return parseJsonArray(value)
     .map((entry) => String(entry).trim().toUpperCase())
     .filter((entry) => entry.length > 0);
+}
+
+function normalizeScheduleSlots(value: unknown): SectionScheduleEntry[] {
+  return parseJsonArray(value)
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+
+      const slot = entry as Partial<SectionScheduleEntry>;
+
+      if (typeof slot.day !== "string" || typeof slot.time !== "string") {
+        return null;
+      }
+
+      return {
+        day: slot.day.trim(),
+        time: slot.time.trim(),
+        type: typeof slot.type === "string" ? slot.type.trim() : "",
+      } satisfies SectionScheduleEntry;
+    })
+    .filter(
+      (
+        slot,
+      ): slot is SectionScheduleEntry =>
+        slot !== null && Boolean(slot.day && slot.time),
+    );
+}
+
+function parseClockTime(value: string) {
+  const normalized = value.trim().toUpperCase();
+  const match = normalized.match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const meridiem = match[3];
+
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || minute < 0 || minute > 59) {
+    return null;
+  }
+
+  if (!meridiem) {
+    if (hour < 0 || hour > 23) {
+      return null;
+    }
+
+    return hour * 60 + minute;
+  }
+
+  if (hour < 1 || hour > 12) {
+    return null;
+  }
+
+  let normalizedHour = hour % 12;
+
+  if (meridiem === "PM") {
+    normalizedHour += 12;
+  }
+
+  return normalizedHour * 60 + minute;
+}
+
+function parseTimeRange(value: string) {
+  const [startValue, endValue] = value.split(/\s*-\s*/);
+
+  if (!startValue || !endValue) {
+    return null;
+  }
+
+  const start = parseClockTime(startValue);
+  const end = parseClockTime(endValue);
+
+  if (start === null || end === null || start >= end) {
+    return null;
+  }
+
+  return { start, end };
+}
+
+function schedulesOverlap(
+  leftSlot: SectionScheduleEntry,
+  rightSlot: SectionScheduleEntry,
+) {
+  if (leftSlot.day.trim().toLowerCase() !== rightSlot.day.trim().toLowerCase()) {
+    return false;
+  }
+
+  const leftRange = parseTimeRange(leftSlot.time);
+  const rightRange = parseTimeRange(rightSlot.time);
+
+  if (!leftRange || !rightRange) {
+    return false;
+  }
+
+  return leftRange.start < rightRange.end && rightRange.start < leftRange.end;
 }
 
 function normalizeGradeInput(value: unknown) {
@@ -133,56 +236,6 @@ function getActiveSeatCount(rows: EnrollmentRow[]) {
   ).length;
 }
 
-async function getSectionSnapshot(db: ReturnType<typeof drizzle>, courseId: string) {
-  const sectionRows = await db
-    .select()
-    .from(sections)
-    .where(eq(sections.courseId, courseId))
-    .all();
-
-  const enrollmentRows = await db
-    .select()
-    .from(enrollments)
-    .where(eq(enrollments.courseId, courseId))
-    .all();
-
-  const activeCounts = new Map<string, number>();
-
-  for (const row of enrollmentRows) {
-    if (row.status !== "ongoing" && row.status !== "completed") {
-      continue;
-    }
-
-    activeCounts.set(row.sectionId, (activeCounts.get(row.sectionId) ?? 0) + 1);
-  }
-
-  const sectionSummaries = sectionRows.map((sectionRow) => ({
-    sectionRow,
-    enrolledCount: activeCounts.get(sectionRow.id) ?? 0,
-    remainingSeats: Math.max(
-      sectionRow.capacity - (activeCounts.get(sectionRow.id) ?? 0),
-      0,
-    ),
-  }));
-
-  const selectedSection = sectionSummaries.find(
-    (entry) => entry.remainingSeats > 0,
-  );
-
-  return {
-    sectionSummaries,
-    selectedSection,
-    totalCapacity: sectionSummaries.reduce(
-      (sum, entry) => sum + entry.sectionRow.capacity,
-      0,
-    ),
-    totalRemainingSeats: sectionSummaries.reduce(
-      (sum, entry) => sum + entry.remainingSeats,
-      0,
-    ),
-  };
-}
-
 export const enrollmentsRoutes = new Hono<{
   Bindings: AppBindings;
   Variables: AppVariables;
@@ -251,6 +304,41 @@ enrollmentsRoutes.post(
 
     if (activeSeatCount >= sectionRow.capacity) {
       return c.json({ message: "This section is full" }, 400);
+    }
+
+    const targetScheduleSlots = normalizeScheduleSlots(sectionRow.scheduleArray);
+
+    if (targetScheduleSlots.length > 0) {
+      const activeScheduleRows = await db
+        .select({ scheduleArray: sections.scheduleArray })
+        .from(enrollments)
+        .innerJoin(sections, eq(enrollments.sectionId, sections.id))
+        .where(
+          and(
+            eq(enrollments.userId, user.id),
+            eq(enrollments.status, "ongoing"),
+          ),
+        )
+        .all();
+
+      const activeScheduleSlots = activeScheduleRows.flatMap((row) =>
+        normalizeScheduleSlots(row.scheduleArray),
+      );
+
+      for (const targetSlot of targetScheduleSlots) {
+        const conflictingSlot = activeScheduleSlots.find((activeSlot) =>
+          schedulesOverlap(targetSlot, activeSlot),
+        );
+
+        if (conflictingSlot) {
+          return c.json(
+            {
+              message: `Schedule conflict! This section conflicts with your current class schedule on ${targetSlot.day} during ${targetSlot.time}.`,
+            },
+            400,
+          );
+        }
+      }
     }
 
     if (requiredPrerequisites.length > 0) {
