@@ -6,12 +6,14 @@
   import {
     ApiError,
     createSection,
+    getAdminSectionRoster,
     getCourses,
     getSections,
     getUsers,
     type SectionCreatePayload,
   } from "$lib/api/client";
   import type {
+    AdminRosterEntry,
     CourseCatalogEntry,
     PublicUser,
     SectionCatalogEntry,
@@ -75,6 +77,28 @@
     return items.map((item) => `${item.day} ${item.time} · ${item.type}`).join(" | ");
   }
 
+  async function viewRoster(section: SectionCatalogEntry) {
+    rosterSection = section;
+    rosterLoading = true;
+    feedback = null;
+
+    try {
+      roster = await getAdminSectionRoster(section.id);
+    } catch (error) {
+      roster = [];
+      feedback = {
+        tone: "error",
+        message: toPublicError(error),
+      };
+    } finally {
+      rosterLoading = false;
+    }
+  }
+
+  function isFinalized(row: AdminRosterEntry) {
+    return row.status === "finalized";
+  }
+
   let session = $derived($authSession);
   let form = $state<SectionFormState>(defaultForm());
   let scheduleDraft = $state<ScheduleDraftState>(defaultScheduleDraft());
@@ -83,6 +107,9 @@
   let instructors = $state<PublicUser[]>([]);
   let sections = $state<SectionCatalogEntry[]>([]);
   let createdSections = $state<SectionCatalogEntry[]>([]);
+  let roster = $state<AdminRosterEntry[]>([]);
+  let rosterSection = $state<SectionCatalogEntry | null>(null);
+  let rosterLoading = $state(false);
   let feedback = $state<FeedbackState | null>(null);
   let isLoading = $state(false);
   let isFetching = $state(true);
@@ -434,6 +461,7 @@
                 <th scope="col">Capacity</th>
                 <th scope="col">Remaining</th>
                 <th scope="col">Schedule</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -454,6 +482,15 @@
                   <td>
                     <div class="schedule-summary">{formatSchedule(section.scheduleArray)}</div>
                   </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="secondary-button roster-button"
+                      onclick={() => void viewRoster(section)}
+                    >
+                      View Roster / Grades
+                    </button>
+                  </td>
                 </tr>
               {/each}
             </tbody>
@@ -462,6 +499,65 @@
       {/if}
     </section>
   </div>
+
+  {#if rosterSection}
+    <section class="panel roster-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Roster View</p>
+          <h2>
+            {rosterSection.courseCode} - {rosterSection.sectionName}
+          </h2>
+        </div>
+        <span class="panel-badge">
+          {rosterLoading ? "Loading roster" : `${roster.length} students`}
+        </span>
+      </div>
+
+      {#if rosterLoading}
+        <div class="empty-copy">Loading roster…</div>
+      {:else if roster.length === 0}
+        <div class="empty-copy">No enrollments found for this section.</div>
+      {:else}
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Student ID</th>
+                <th scope="col">Student Name</th>
+                <th scope="col">Status</th>
+                <th scope="col">Grade</th>
+                <th scope="col">Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each roster as row (row.id)}
+                <tr>
+                  <td>{row.student.id}</td>
+                  <td>
+                    {row.student.name}
+                    <div class="table-subcopy">{row.student.username}</div>
+                  </td>
+                  <td>
+                    <span class="status-pill">{row.status}</span>
+                  </td>
+                  <td>
+                    <span class="finalized-grade">
+                      <span>{row.grade ?? "—"}</span>
+                      {#if isFinalized(row)}
+                        <span class="finalized-badge">🔒 Finalized</span>
+                      {/if}
+                    </span>
+                  </td>
+                  <td>{row.remark ?? "—"}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
+    </section>
+  {/if}
 </section>
 
 <style>
@@ -610,6 +706,37 @@
     white-space: nowrap;
   }
 
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    color: #cbd5e1;
+    text-transform: capitalize;
+    font-size: 0.8rem;
+  }
+
+  .finalized-grade {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .finalized-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.28rem 0.55rem;
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    background: rgba(20, 83, 45, 0.55);
+    color: #bbf7d0;
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+
   .section-form {
     display: grid;
     gap: 1rem;
@@ -741,6 +868,10 @@
     background: rgba(15, 23, 42, 0.72);
     border-color: rgba(148, 163, 184, 0.18);
     color: #e2e8f0;
+  }
+
+  .roster-button {
+    padding: 0.7rem 0.95rem;
   }
 
   .ghost-button {

@@ -161,3 +161,23 @@ export type InstructorSectionBundle = {
 export type InstructorSectionsResponse = {
   sections: InstructorSectionBundle[];
 };
+
+export type AdminRosterStudent = {
+  id: string;
+  username: string;
+  name: string;
+};
+
+export type AdminRosterEntry = {
+  id: string;
+  userId: string;
+  studentId: string;
+  courseId: string;
+  sectionId: string;
+  status: string;
+  dateRequested: string;
+  dateEnrolled: string | null;
+  grade: number | null;
+  remark: string | null;
+  student: AdminRosterStudent;
+};

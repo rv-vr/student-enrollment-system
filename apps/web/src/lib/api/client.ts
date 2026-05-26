@@ -3,6 +3,7 @@ import { hc } from "hono/client";
 import { getAuthHeaders } from "$lib/stores/auth";
 import type {
   ApiErrorResponse,
+  AdminRosterEntry,
   CourseAvailability,
   CourseCatalogEntry,
   InstructorSectionsResponse,
@@ -149,6 +150,14 @@ export async function getCourses() {
 export async function getInstructorClasses() {
   return readJson<InstructorClassesResponse>(
     await rpcClient.instructor.classes.$get(),
+  );
+}
+
+export async function getAdminSectionRoster(sectionId: string) {
+  return readJson<AdminRosterEntry[]>(
+    await rpcClient.admin.sections[":id"].roster.$get({
+      param: { id: String(sectionId) },
+    }),
   );
 }
 

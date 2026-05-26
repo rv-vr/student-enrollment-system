@@ -20,6 +20,13 @@ type EnrollmentRow = typeof enrollments.$inferSelect;
 type SectionRow = typeof sections.$inferSelect;
 type UserRow = typeof users.$inferSelect;
 type PublicUserRow = Omit<UserRow, "passwordHash">;
+type AdminRosterRow = EnrollmentRow & {
+  student: {
+    id: string;
+    username: string;
+    name: string;
+  };
+};
 
 const adminCreateUserSchema = z.object({
   name: z.string().trim().min(1),
@@ -121,6 +128,53 @@ adminRoutes.get("/users", async (c) => {
 
   return c.json({ users: payload });
 });
+
+adminRoutes.get(
+  "/sections/:id/roster",
+  zValidator(
+    "param",
+    z.object({
+      id: z.string().uuid(),
+    }),
+  ),
+  async (c) => {
+    const { id: sectionId } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    const sectionRow = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, sectionId))
+      .get();
+
+    if (!sectionRow) {
+      return c.json({ message: "Section not found" }, 404);
+    }
+
+    const rosterRows = await db
+      .select({
+        enrollment: enrollments,
+        studentId: users.id,
+        studentUsername: users.username,
+        studentName: users.name,
+      })
+      .from(enrollments)
+      .innerJoin(users, eq(enrollments.userId, users.id))
+      .where(eq(enrollments.sectionId, sectionId))
+      .all();
+
+    const roster: AdminRosterRow[] = rosterRows.map((row) => ({
+      ...row.enrollment,
+      student: {
+        id: row.studentId,
+        username: row.studentUsername,
+        name: row.studentName,
+      },
+    }));
+
+    return c.json(roster);
+  },
+);
 
 adminRoutes.post(
   "/users",
