@@ -100,6 +100,10 @@ describe("validators", () => {
         .success,
     ).toBe(true);
     expect(
+      loginSchema.safeParse({ username: "2023-3292-I", password: "Abad" })
+        .success,
+    ).toBe(true);
+    expect(
       loginSchema.safeParse({ username: "2026-1338-R", password: "Chen" })
         .success,
     ).toBe(true);

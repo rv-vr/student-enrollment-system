@@ -9,6 +9,7 @@
       "binding": "DB",
       "database_name": "uniaces-db",
       "database_id": "ae9ccb04-3f2d-4710-86cd-fbd739eeeebb",
+      "migrations_dir": "./drizzle/",
     },
   ],
 }
