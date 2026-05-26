@@ -4,7 +4,9 @@ import { generateAcademicUsername } from "./idGenerator";
 
 describe("generateAcademicUsername", () => {
   it("generates student usernames with an allowed suffix", () => {
-    expect(generateAcademicUsername("student")).toMatch(/^20\d{2}-\d{4}-[AIH]$/);
+    expect(generateAcademicUsername("student")).toMatch(
+      /^20\d{2}-\d{4}-[AIH]$/,
+    );
   });
 
   it("generates instructor usernames with the instructor suffix", () => {

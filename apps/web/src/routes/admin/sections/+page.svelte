@@ -10,7 +10,11 @@
     getCourses,
     getSections,
     getUsers,
+    getAdminRequests,
+    approveAdminEnrollment,
+    denyAdminEnrollment,
     type SectionCreatePayload,
+    type AdminRequestsResponse,
   } from "$lib/api/client";
   import type {
     AdminRosterEntry,
@@ -109,6 +113,7 @@
   let instructors = $state<PublicUser[]>([]);
   let sections = $state<SectionCatalogEntry[]>([]);
   let createdSections = $state<SectionCatalogEntry[]>([]);
+  let requests = $state<AdminRequestsResponse["requests"]>([]);
   let roster = $state<AdminRosterEntry[]>([]);
   let rosterSection = $state<SectionCatalogEntry | null>(null);
   let rosterLoading = $state(false);
@@ -128,16 +133,22 @@
     isFetching = true;
 
     try {
-      const [courseResponse, instructorResponse, sectionResponse] =
-        await Promise.all([
-          getCourses(),
-          getUsers("instructor"),
-          getSections(),
-        ]);
+      const [
+        courseResponse,
+        instructorResponse,
+        sectionResponse,
+        requestResponse,
+      ] = await Promise.all([
+        getCourses(),
+        getUsers("instructor"),
+        getSections(),
+        getAdminRequests(),
+      ]);
 
       courses = courseResponse ?? [];
       instructors = instructorResponse.users ?? [];
       sections = sectionResponse.sections ?? [];
+      requests = requestResponse.requests ?? [];
     } catch (error) {
       feedback = {
         tone: "error",
@@ -145,6 +156,31 @@
       };
     } finally {
       isFetching = false;
+    }
+  }
+
+  async function handleApprove(requestId: string) {
+    feedback = null;
+    try {
+      await approveAdminEnrollment(requestId);
+      requests = requests.filter((r) => r.id !== requestId);
+      feedback = { tone: "success", message: "Enrollment approved." };
+      // Refresh sections to update remaining seats
+      const sectionResponse = await getSections();
+      sections = sectionResponse.sections ?? [];
+    } catch (error) {
+      feedback = { tone: "error", message: toPublicError(error) };
+    }
+  }
+
+  async function handleDeny(requestId: string) {
+    feedback = null;
+    try {
+      await denyAdminEnrollment(requestId);
+      requests = requests.filter((r) => r.id !== requestId);
+      feedback = { tone: "success", message: "Enrollment denied." };
+    } catch (error) {
+      feedback = { tone: "error", message: toPublicError(error) };
     }
   }
 
@@ -445,6 +481,78 @@
           </button>
         </div>
       </form>
+    </section>
+
+    <section class="panel requests-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Pending Registration Approvals</p>
+          <h2>Approval Queue</h2>
+        </div>
+        <span class="panel-badge">{requests.length} pending</span>
+      </div>
+
+      {#if isFetching}
+        <div class="empty-copy">Loading queue…</div>
+      {:else if requests.length === 0}
+        <div class="empty-copy">Queue is empty. No pending requests.</div>
+      {:else}
+        <div
+          class="w-full overflow-x-auto border border-slate-200 rounded-lg shadow-sm"
+        >
+          <table
+            class="w-full min-w-[600px] border-collapse text-left text-sm text-slate-500"
+          >
+            <thead>
+              <tr>
+                <th scope="col" class="whitespace-nowrap">Student</th>
+                <th scope="col" class="whitespace-nowrap">Course</th>
+                <th scope="col" class="whitespace-nowrap">Section</th>
+                <th scope="col" class="whitespace-nowrap">Requested</th>
+                <th scope="col" class="whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each requests as req (req.id)}
+                <tr>
+                  <td class="whitespace-nowrap">
+                    <strong>{req.student?.name}</strong>
+                    <div class="table-subcopy">{req.student?.username}</div>
+                  </td>
+                  <td class="whitespace-nowrap">
+                    <strong>{req.course?.id}</strong>
+                    <div class="table-subcopy truncate max-w-[150px]">
+                      {req.course?.title}
+                    </div>
+                  </td>
+                  <td class="whitespace-nowrap">{req.section?.sectionName}</td>
+                  <td class="whitespace-nowrap">
+                    {new Date(req.dateRequested).toLocaleDateString()}
+                  </td>
+                  <td class="whitespace-nowrap">
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        class="primary-button approve-button"
+                        onclick={() => void handleApprove(req.id)}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        class="secondary-button deny-button"
+                        onclick={() => void handleDeny(req.id)}
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
     </section>
 
     <section class="panel catalog-panel">
@@ -913,6 +1021,23 @@
 
   .roster-button {
     padding: 0.7rem 0.95rem;
+  }
+
+  .approve-button {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .deny-button {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+    background: rgba(244, 63, 94, 0.1);
+    border-color: rgba(244, 63, 94, 0.2);
+    color: #fecdd3;
+  }
+
+  .deny-button:hover {
+    background: rgba(244, 63, 94, 0.2);
   }
 
   .ghost-button {
