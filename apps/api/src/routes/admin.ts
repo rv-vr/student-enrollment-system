@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { createMiddleware } from "hono/factory";
 import { Hono } from "hono";
@@ -327,6 +327,89 @@ adminRoutes.patch(
 
     if (activeSeatCount >= sectionRow.capacity) {
       return c.json({ message: "Section is full" }, 400);
+    }
+
+    // Multi-step safety validation check
+    const studentActiveEnrollments = await db
+      .select({
+        enrollment: enrollments,
+        section: sections,
+      })
+      .from(enrollments)
+      .innerJoin(sections, eq(enrollments.sectionId, sections.id))
+      .where(
+        and(
+          eq(enrollments.userId, enrollmentRow.userId),
+          or(
+            eq(enrollments.status, "ongoing"),
+            eq(enrollments.status, "finalized"),
+          ),
+        ),
+      )
+      .all();
+
+    // Rule 1: Duplicate Subject Check
+    const hasDuplicateSubject = studentActiveEnrollments.some(
+      (item) => item.enrollment.courseId === enrollmentRow.courseId,
+    );
+
+    if (hasDuplicateSubject) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Approval Blocked: Student is already confirmed for this subject or has an overlapping class schedule.",
+        },
+        400,
+      );
+    }
+
+    // Rule 2: Student Schedule Collision Check
+    const requestedSchedule = parseJsonArray(
+      sectionRow.scheduleArray,
+    ) as SectionScheduleEntry[];
+
+    const parseTime = (timeStr: string) => {
+      const [startStr, endStr] = timeStr.split(" - ");
+      const toMinutes = (s: string) => {
+        const [h, m] = s.split(":").map(Number);
+        return h * 60 + m;
+      };
+      return { start: toMinutes(startStr), end: toMinutes(endStr) };
+    };
+
+    let hasCollision = false;
+    for (const active of studentActiveEnrollments) {
+      const activeSchedule = parseJsonArray(
+        active.section.scheduleArray,
+      ) as SectionScheduleEntry[];
+      for (const reqSched of requestedSchedule) {
+        for (const actSched of activeSchedule) {
+          if (reqSched.day === actSched.day) {
+            const reqTime = parseTime(reqSched.time);
+            const actTime = parseTime(actSched.time);
+
+            // Boundary equation: (requested_start_time < existing_end_time) AND (requested_end_time > existing_start_time)
+            if (reqTime.start < actTime.end && reqTime.end > actTime.start) {
+              hasCollision = true;
+              break;
+            }
+          }
+        }
+        if (hasCollision) break;
+      }
+      if (hasCollision) break;
+    }
+
+    if (hasCollision) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Approval Blocked: Student is already confirmed for this subject or has an overlapping class schedule.",
+        },
+        400,
+      );
     }
 
     const timestamp = new Date().toISOString();
