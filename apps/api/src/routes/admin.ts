@@ -18,6 +18,7 @@ import { generateAcademicUsername } from "../utils/idGenerator";
 import {
   adminDecisionSchema,
   courseIdParamSchema,
+  courseValidationHook,
   enrollmentIdParamSchema,
   enrollmentValidationHook,
   sectionIdParamSchema,
