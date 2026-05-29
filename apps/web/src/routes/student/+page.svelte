@@ -347,7 +347,6 @@
 <section class="student-dashboard">
   <header class="hero">
     <div>
-      <p class="eyebrow">Milestone 4</p>
       <h1>Enrollments</h1>
       <p class="lede">
         Browse live class offerings on the left, then stack your active schedule
