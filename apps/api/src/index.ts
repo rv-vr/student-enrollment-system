@@ -8,6 +8,7 @@ import { sectionsRoutes } from "./routes/sections";
 import { usersRoutes } from "./routes/users";
 import { studentsRoutes } from "./routes/students";
 import { instructorRoutes } from "./routes/instructor";
+import { notificationsRoutes } from "./routes/notifications";
 import { type AppBindings } from "./auth";
 
 const app = new Hono<{ Bindings: AppBindings }>();
@@ -54,6 +55,7 @@ app.route("/students", studentsRoutes);
 app.route("/", enrollmentsRoutes);
 app.route("/instructor", instructorRoutes);
 app.route("/admin", adminRoutes);
+app.route("/notifications", notificationsRoutes);
 
 export const routes = app;
 export type AppType = typeof routes;

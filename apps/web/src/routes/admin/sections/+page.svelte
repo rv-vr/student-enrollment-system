@@ -14,6 +14,7 @@
     approveAdminEnrollment,
     denyAdminEnrollment,
     deleteAdminSection,
+    purgeAdminSection,
     type SectionCreatePayload,
     type AdminRequestsResponse,
   } from "$lib/api/client";
@@ -45,7 +46,11 @@
     Modal,
   } from "flowbite-svelte";
   import { fly } from "svelte/transition";
-  import { CloseCircleSolid, TrashBinOutline } from "flowbite-svelte-icons";
+  import {
+    CloseCircleSolid,
+    TrashBinOutline,
+    ExclamationCircleSolid,
+  } from "flowbite-svelte-icons";
 
   type SectionFormState = {
     courseCode: string;
@@ -200,6 +205,24 @@
       sections = sections.filter((s) => s.id !== sectionToDelete!.id);
       addToast(
         `Section ${sectionToDelete.sectionName} for ${sectionToDelete.courseCode} deleted successfully.`,
+        "green",
+      );
+    } catch (error) {
+      addToast(toPublicError(error), "red");
+    } finally {
+      deleteModal = false;
+      sectionToDelete = null;
+    }
+  }
+
+  async function handlePurge() {
+    if (!sectionToDelete) return;
+
+    try {
+      await purgeAdminSection(sectionToDelete.id);
+      sections = sections.filter((s) => s.id !== sectionToDelete!.id);
+      addToast(
+        `Section ${sectionToDelete.sectionName} force-purged. Affected students notified.`,
         "green",
       );
     } catch (error) {
@@ -440,20 +463,40 @@
     class="z-50"
   >
     <div class="text-center">
-      <TrashBinOutline class="mx-auto mb-4 text-gray-400 w-12 h-12" />
-      <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-        Are you sure you want to delete section <strong
-          >{sectionToDelete?.sectionName}</strong
-        >
-        for <strong>{sectionToDelete?.courseCode}</strong>? This action cannot
-        be undone.
-      </h3>
-      <div class="flex justify-center gap-4">
-        <Button color="red" onclick={handleDelete}>Confirm Delete</Button>
-        <Button color="alternative" onclick={() => (deleteModal = false)}
-          >Cancel</Button
-        >
-      </div>
+      {#if sectionToDelete && sectionToDelete.enrolledCount > 0}
+        <ExclamationCircleSolid
+          class="mx-auto mb-4 text-orange-400 w-12 h-12"
+        />
+        <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+          This section has <strong>{sectionToDelete.enrolledCount}</strong> active
+          students. Standard deletion is blocked.
+        </h3>
+        <p class="mb-5 text-sm text-gray-500">
+          Perform an emergency <strong>Force Purge</strong>? This will clear all
+          enrollments and notify students.
+        </p>
+        <div class="flex justify-center gap-4">
+          <Button color="red" onclick={handlePurge}>Force Purge</Button>
+          <Button color="alternative" onclick={() => (deleteModal = false)}
+            >Cancel</Button
+          >
+        </div>
+      {:else}
+        <TrashBinOutline class="mx-auto mb-4 text-gray-400 w-12 h-12" />
+        <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+          Are you sure you want to delete section <strong
+            >{sectionToDelete?.sectionName}</strong
+          >
+          for <strong>{sectionToDelete?.courseCode}</strong>? This action cannot
+          be undone.
+        </h3>
+        <div class="flex justify-center gap-4">
+          <Button color="red" onclick={handleDelete}>Confirm Delete</Button>
+          <Button color="alternative" onclick={() => (deleteModal = false)}
+            >Cancel</Button
+          >
+        </div>
+      {/if}
     </div>
   </Modal>
 

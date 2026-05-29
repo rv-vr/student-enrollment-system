@@ -114,6 +114,10 @@ export type StudentNotificationsResponse = InferResponseType<
   typeof studentNotificationsGet
 >;
 
+export type NotificationsResponse = InferResponseType<
+  typeof rpcClient.notifications.$get
+>;
+
 async function readJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => null);
 
@@ -258,6 +262,26 @@ export async function deleteAdminSection(sectionId: string) {
   return readJson<MutationResponse>(
     await rpcClient.admin.sections[":id"].$delete({
       param: { id: sectionId },
+    }),
+  );
+}
+
+export async function purgeAdminSection(sectionId: string) {
+  return readJson<MutationResponse>(
+    await rpcClient.admin.sections[":id"].purge.$post({
+      param: { id: sectionId },
+    }),
+  );
+}
+
+export async function getNotifications() {
+  return readJson<NotificationsResponse>(await rpcClient.notifications.$get());
+}
+
+export async function markNotificationRead(id: string) {
+  return readJson<{ success: boolean; message: string }>(
+    await rpcClient.notifications[":id"].read.$patch({
+      param: { id },
     }),
   );
 }
