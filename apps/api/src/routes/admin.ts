@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { hash } from "bcryptjs";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { createMiddleware } from "hono/factory";
 import { Hono } from "hono";
@@ -17,8 +17,12 @@ import {
 import { generateAcademicUsername } from "../utils/idGenerator";
 import {
   adminDecisionSchema,
+  courseIdParamSchema,
+  courseValidationHook,
   enrollmentIdParamSchema,
   enrollmentValidationHook,
+  sectionIdParamSchema,
+  sectionValidationHook,
 } from "../validators";
 
 type CourseRow = typeof courses.$inferSelect;
@@ -577,6 +581,142 @@ adminRoutes.patch(
         studentRow,
       ),
       notification,
+    });
+  },
+);
+
+adminRoutes.delete(
+  "/courses/:id",
+  zValidator("param", courseIdParamSchema, courseValidationHook),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    const relatedSections = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.courseId, id))
+      .all();
+
+    if (relatedSections.length > 0) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Cannot delete course: Active classes/sections are currently assigned to this subject.",
+        },
+        400,
+      );
+    }
+
+    await db.delete(courses).where(eq(courses.id, id)).run();
+
+    return c.json({ success: true, message: "Course deleted successfully" });
+  },
+);
+
+adminRoutes.delete(
+  "/sections/:id",
+  zValidator("param", sectionIdParamSchema, sectionValidationHook),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    // Step A: Query for active/pending student rows
+    const blockingEnrollments = await db
+      .select()
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.sectionId, id),
+          inArray(enrollments.status, ["requested", "ongoing", "finalized"]),
+        ),
+      )
+      .all();
+
+    // Condition 1: Active/Pending Students Exist
+    if (blockingEnrollments.length > 0) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Cannot delete schedule: Students are currently registered or pending approval in this section.",
+        },
+        400,
+      );
+    }
+
+    // Condition 2: No Active/Pending Students. Purge historic 'denied' records if any.
+    await db
+      .delete(enrollments)
+      .where(
+        and(eq(enrollments.sectionId, id), eq(enrollments.status, "denied")),
+      )
+      .run();
+
+    // Final execute section deletion
+    await db.delete(sections).where(eq(sections.id, id)).run();
+
+    return c.json({ success: true, message: "Section deleted successfully" });
+  },
+);
+
+adminRoutes.post(
+  "/sections/:id/purge",
+  zValidator("param", sectionIdParamSchema, sectionValidationHook),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    // Step A: Fetch affected students and section/course details before deletion
+    const affectedEnrollments = await db
+      .select({
+        userId: enrollments.userId,
+        courseId: enrollments.courseId,
+      })
+      .from(enrollments)
+      .where(eq(enrollments.sectionId, id))
+      .all();
+
+    const sectionRow = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, id))
+      .get();
+
+    if (!sectionRow) {
+      return c.json({ success: false, error: "Section not found" }, 404);
+    }
+
+    // Step B: Proceed with deletion in a transaction/batch
+    const timestamp = new Date().toISOString();
+
+    await db.batch([
+      db.delete(enrollments).where(eq(enrollments.sectionId, id)),
+      db.delete(sections).where(eq(sections.id, id)),
+    ]);
+
+    // Step C: Insert notifications for every affected student
+    if (affectedEnrollments.length > 0) {
+      const notificationInserts = affectedEnrollments.map((row) => {
+        return db.insert(notifications).values({
+          id: crypto.randomUUID(),
+          userId: row.userId,
+          title: "Schedule Cancellation Notice",
+          message: `The schedule for subject ${row.courseId} under your section has been removed due to an administrative scheduling adjustment. Your enrollment slot has been cleared and your units have been released. Please review the updated catalog to select an alternative class section.`,
+          type: "alert",
+          isRead: 0,
+          createdAt: timestamp,
+        });
+      });
+
+      await db.batch(notificationInserts);
+    }
+
+    return c.json({
+      success: true,
+      message: "Section purged and students notified.",
+      affectedCount: affectedEnrollments.length,
     });
   },
 );
