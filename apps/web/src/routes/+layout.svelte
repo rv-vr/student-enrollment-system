@@ -22,7 +22,6 @@
     GridSolid,
     UsersSolid,
     BookOpenSolid,
-    ChartPieSolid,
     LandmarkSolid,
   } from "flowbite-svelte-icons";
   import "./layout.css";
@@ -33,11 +32,6 @@
   let activeUrl = $derived(page.url.pathname);
 
   const sidebarUi = uiHelpers();
-  let isSidebarOpen = $state(false);
-
-  $effect(() => {
-    isSidebarOpen = sidebarUi.isOpen;
-  });
 
   function getRoleHome(role: string) {
     if (role === "admin") {
@@ -109,7 +103,7 @@
 
     <Sidebar
       {activeUrl}
-      isOpen={isSidebarOpen}
+      isOpen={sidebarUi.isOpen}
       closeSidebar={sidebarUi.close}
       class="fixed start-0 top-0 z-30 h-screen w-64 pt-16 transition-transform md:translate-x-0"
     >
@@ -147,7 +141,7 @@
             <SidebarItem label="Dashboard" href={resolve("/student")}>
               {#snippet icon()}
                 <GridSolid
-                class="h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                  class="h-5 w-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
                 />
               {/snippet}
             </SidebarItem>
