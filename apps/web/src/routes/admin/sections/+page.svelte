@@ -442,9 +442,11 @@
     <div class="text-center">
       <TrashBinOutline class="mx-auto mb-4 text-gray-400 w-12 h-12" />
       <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-        Are you sure you want to delete section <strong>{sectionToDelete?.sectionName}</strong
-        > for <strong>{sectionToDelete?.courseCode}</strong
-        >? This action cannot be undone.
+        Are you sure you want to delete section <strong
+          >{sectionToDelete?.sectionName}</strong
+        >
+        for <strong>{sectionToDelete?.courseCode}</strong>? This action cannot
+        be undone.
       </h3>
       <div class="flex justify-center gap-4">
         <Button color="red" onclick={handleDelete}>Confirm Delete</Button>

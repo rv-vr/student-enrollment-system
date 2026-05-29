@@ -327,7 +327,8 @@
     <div class="text-center">
       <TrashBinOutline class="mx-auto mb-4 text-gray-400 w-12 h-12" />
       <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-        Are you sure you want to delete course <strong>{courseToDelete?.code}</strong
+        Are you sure you want to delete course <strong
+          >{courseToDelete?.code}</strong
         >? This action cannot be undone.
       </h3>
       <div class="flex justify-center gap-4">
