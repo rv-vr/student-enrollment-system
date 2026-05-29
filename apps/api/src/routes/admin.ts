@@ -17,8 +17,11 @@ import {
 import { generateAcademicUsername } from "../utils/idGenerator";
 import {
   adminDecisionSchema,
+  courseIdParamSchema,
   enrollmentIdParamSchema,
   enrollmentValidationHook,
+  sectionIdParamSchema,
+  sectionValidationHook,
 } from "../validators";
 
 type CourseRow = typeof courses.$inferSelect;
@@ -578,5 +581,65 @@ adminRoutes.patch(
       ),
       notification,
     });
+  },
+);
+
+adminRoutes.delete(
+  "/courses/:id",
+  zValidator("param", courseIdParamSchema, courseValidationHook),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    const relatedSections = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.courseId, id))
+      .all();
+
+    if (relatedSections.length > 0) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Cannot delete course: Active classes/sections are currently assigned to this subject.",
+        },
+        400,
+      );
+    }
+
+    await db.delete(courses).where(eq(courses.id, id)).run();
+
+    return c.json({ success: true, message: "Course deleted successfully" });
+  },
+);
+
+adminRoutes.delete(
+  "/sections/:id",
+  zValidator("param", sectionIdParamSchema, sectionValidationHook),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const db = drizzle(c.env.DB);
+
+    const relatedEnrollments = await db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.sectionId, id))
+      .all();
+
+    if (relatedEnrollments.length > 0) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Cannot delete schedule: Students are currently registered or pending approval in this section.",
+        },
+        400,
+      );
+    }
+
+    await db.delete(sections).where(eq(sections.id, id)).run();
+
+    return c.json({ success: true, message: "Section deleted successfully" });
   },
 );

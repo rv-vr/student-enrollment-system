@@ -133,6 +133,14 @@ export const enrollmentIdParamSchema = z.object({
   id: z.string().uuid(),
 });
 
+export const sectionIdParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const courseIdParamSchema = z.object({
+  id: z.string().trim().min(1).toUpperCase(),
+});
+
 export const loginSchema = z.object({
   username: z
     .string()

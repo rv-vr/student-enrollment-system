@@ -246,6 +246,22 @@ export async function denyAdminEnrollment(enrollmentId: string) {
   );
 }
 
+export async function deleteAdminCourse(courseId: string) {
+  return readJson<MutationResponse>(
+    await rpcClient.admin.courses[":id"].$delete({
+      param: { id: courseId },
+    }),
+  );
+}
+
+export async function deleteAdminSection(sectionId: string) {
+  return readJson<MutationResponse>(
+    await rpcClient.admin.sections[":id"].$delete({
+      param: { id: sectionId },
+    }),
+  );
+}
+
 export async function getCourseAvailability(courseCode: string) {
   return readJson<CourseAvailability>(
     await rpcClient.courses[":code"].availability.$get({

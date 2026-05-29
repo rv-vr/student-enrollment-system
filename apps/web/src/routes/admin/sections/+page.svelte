@@ -13,6 +13,7 @@
     getAdminRequests,
     approveAdminEnrollment,
     denyAdminEnrollment,
+    deleteAdminSection,
     type SectionCreatePayload,
     type AdminRequestsResponse,
   } from "$lib/api/client";
@@ -41,9 +42,10 @@
     Alert,
     Toast,
     ToastContainer,
+    Modal,
   } from "flowbite-svelte";
   import { fly } from "svelte/transition";
-  import { CloseCircleSolid } from "flowbite-svelte-icons";
+  import { CloseCircleSolid, TrashBinOutline } from "flowbite-svelte-icons";
 
   type SectionFormState = {
     courseCode: string;
@@ -151,6 +153,9 @@
   let isFetching = $state(true);
   let hasBooted = $state(false);
 
+  let deleteModal = $state(false);
+  let sectionToDelete = $state<SectionCatalogEntry | null>(null);
+
   let toasts = $state<ToastItem[]>([]);
   let nextToastId = $state(1);
 
@@ -180,6 +185,29 @@
     setTimeout(() => {
       toasts = toasts.filter((t) => t.id !== id);
     }, 300);
+  }
+
+  function confirmDelete(section: SectionCatalogEntry) {
+    sectionToDelete = section;
+    deleteModal = true;
+  }
+
+  async function handleDelete() {
+    if (!sectionToDelete) return;
+
+    try {
+      await deleteAdminSection(sectionToDelete.id);
+      sections = sections.filter((s) => s.id !== sectionToDelete!.id);
+      addToast(
+        `Section ${sectionToDelete.sectionName} for ${sectionToDelete.courseCode} deleted successfully.`,
+        "green",
+      );
+    } catch (error) {
+      addToast(toPublicError(error), "red");
+    } finally {
+      deleteModal = false;
+      sectionToDelete = null;
+    }
   }
 
   let activeCourseOptions = $derived(courses);
@@ -403,6 +431,29 @@
       </Toast>
     {/each}
   </ToastContainer>
+
+  <Modal
+    title="Confirm Deletion"
+    bind:open={deleteModal}
+    autoclose
+    size="sm"
+    class="z-50"
+  >
+    <div class="text-center">
+      <TrashBinOutline class="mx-auto mb-4 text-gray-400 w-12 h-12" />
+      <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+        Are you sure you want to delete section <strong>{sectionToDelete?.sectionName}</strong
+        > for <strong>{sectionToDelete?.courseCode}</strong
+        >? This action cannot be undone.
+      </h3>
+      <div class="flex justify-center gap-4">
+        <Button color="red" onclick={handleDelete}>Confirm Delete</Button>
+        <Button color="alternative" onclick={() => (deleteModal = false)}
+          >Cancel</Button
+        >
+      </div>
+    </div>
+  </Modal>
 
   <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
     <div class="flex flex-col md:flex-row justify-between gap-6">
@@ -797,13 +848,24 @@
                   </div>
                 </TableBodyCell>
                 <TableBodyCell>
-                  <Button
-                    size="xs"
-                    color="alternative"
-                    onclick={() => void viewRoster(section)}
-                  >
-                    View Roster
-                  </Button>
+                  <div class="flex gap-2">
+                    <Button
+                      size="xs"
+                      color="alternative"
+                      onclick={() => void viewRoster(section)}
+                    >
+                      View Roster
+                    </Button>
+                    <Button
+                      size="xs"
+                      color="red"
+                      outline
+                      onclick={() => confirmDelete(section)}
+                      aria-label="Delete section"
+                    >
+                      <TrashBinOutline class="w-4 h-4" />
+                    </Button>
+                  </div>
                 </TableBodyCell>
               </TableBodyRow>
             {/each}

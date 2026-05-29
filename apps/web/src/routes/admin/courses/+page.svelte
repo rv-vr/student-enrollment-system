@@ -7,6 +7,7 @@
     ApiError,
     createAdminCourse,
     getCourses,
+    deleteAdminCourse,
     type AdminCourseCreatePayload,
   } from "$lib/api/client";
   import type { CourseCatalogEntry } from "$lib/api/types";
@@ -27,7 +28,12 @@
     Button,
     Alert,
     Checkbox,
+    Modal,
+    Toast,
+    ToastContainer,
   } from "flowbite-svelte";
+  import { fly } from "svelte/transition";
+  import { TrashBinOutline, CloseCircleSolid } from "flowbite-svelte-icons";
 
   type CourseFormState = {
     id: string;
@@ -42,6 +48,14 @@
   type FeedbackState = {
     tone: "success" | "error";
     message: string;
+  };
+
+  type ToastItem = {
+    id: number;
+    message: string;
+    color: "green" | "red" | "yellow" | "blue";
+    visible: boolean;
+    timeoutId?: ReturnType<typeof setTimeout>;
   };
 
   const defaultForm = (): CourseFormState => ({
@@ -94,6 +108,60 @@
   let isLoading = $state(false);
   let isFetching = $state(true);
   let hasBooted = $state(false);
+
+  let deleteModal = $state(false);
+  let courseToDelete = $state<CourseCatalogEntry | null>(null);
+
+  let toasts = $state<ToastItem[]>([]);
+  let nextToastId = $state(1);
+
+  function addToast(message: string, color: ToastItem["color"] = "green") {
+    const id = nextToastId++;
+    const newToast: ToastItem = {
+      id,
+      message,
+      color,
+      visible: true,
+    };
+
+    const timeoutId = setTimeout(() => {
+      dismissToast(id);
+    }, 5000);
+    newToast.timeoutId = timeoutId;
+
+    toasts = [...toasts, newToast];
+  }
+
+  function dismissToast(id: number) {
+    const toast = toasts.find((t) => t.id === id);
+    if (toast?.timeoutId) {
+      clearTimeout(toast.timeoutId);
+    }
+    toasts = toasts.map((t) => (t.id === id ? { ...t, visible: false } : t));
+    setTimeout(() => {
+      toasts = toasts.filter((t) => t.id !== id);
+    }, 300);
+  }
+
+  function confirmDelete(course: CourseCatalogEntry) {
+    courseToDelete = course;
+    deleteModal = true;
+  }
+
+  async function handleDelete() {
+    if (!courseToDelete) return;
+
+    try {
+      await deleteAdminCourse(courseToDelete.id);
+      courses = courses.filter((c) => c.id !== courseToDelete!.id);
+      addToast(`Course ${courseToDelete.code} deleted successfully.`, "green");
+    } catch (error) {
+      addToast(toPublicError(error), "red");
+    } finally {
+      deleteModal = false;
+      courseToDelete = null;
+    }
+  }
 
   let prerequisiteOptions = $derived(
     courses.filter(
@@ -228,6 +296,49 @@
 </svelte:head>
 
 <section class="admin-courses-page space-y-6">
+  <ToastContainer position="top-right" class="z-50">
+    {#each toasts as toast (toast.id)}
+      <Toast
+        color={toast.color}
+        dismissable={true}
+        transition={fly}
+        params={{ x: 200, duration: 300 }}
+        class="mb-4"
+        onclose={() => dismissToast(toast.id)}
+        bind:toastStatus={toast.visible}
+      >
+        {#snippet icon()}
+          {#if toast.color === "red"}
+            <CloseCircleSolid class="h-5 w-5" />
+          {/if}
+        {/snippet}
+        {toast.message}
+      </Toast>
+    {/each}
+  </ToastContainer>
+
+  <Modal
+    title="Confirm Deletion"
+    bind:open={deleteModal}
+    autoclose
+    size="sm"
+    class="z-50"
+  >
+    <div class="text-center">
+      <TrashBinOutline class="mx-auto mb-4 text-gray-400 w-12 h-12" />
+      <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+        Are you sure you want to delete course <strong>{courseToDelete?.code}</strong
+        >? This action cannot be undone.
+      </h3>
+      <div class="flex justify-center gap-4">
+        <Button color="red" onclick={handleDelete}>Confirm Delete</Button>
+        <Button color="alternative" onclick={() => (deleteModal = false)}
+          >Cancel</Button
+        >
+      </div>
+    </div>
+  </Modal>
+
   <Card size="xl" class="shadow-none border-slate-200 max-w-none">
     <div class="flex flex-col md:flex-row justify-between gap-6 p-4">
       <div>
@@ -478,6 +589,7 @@
             <TableHeadCell>Credits</TableHeadCell>
             <TableHeadCell>Seats / Capacity</TableHeadCell>
             <TableHeadCell>Prerequisites</TableHeadCell>
+            <TableHeadCell>Actions</TableHeadCell>
           </TableHead>
           <TableBody>
             {#each courses as course (course.id)}
@@ -510,6 +622,17 @@
                 <TableBodyCell class="max-w-[200px] truncate"
                   >{formatPrerequisites(course)}</TableBodyCell
                 >
+                <TableBodyCell>
+                  <Button
+                    size="xs"
+                    color="red"
+                    outline
+                    onclick={() => confirmDelete(course)}
+                    aria-label="Delete course"
+                  >
+                    <TrashBinOutline class="w-4 h-4" />
+                  </Button>
+                </TableBodyCell>
               </TableBodyRow>
             {/each}
           </TableBody>
