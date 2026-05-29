@@ -39,7 +39,11 @@
     Select,
     Button,
     Alert,
+    Toast,
+    ToastContainer,
   } from "flowbite-svelte";
+  import { fly } from "svelte/transition";
+  import { CloseCircleSolid } from "flowbite-svelte-icons";
 
   type SectionFormState = {
     courseCode: string;
@@ -53,6 +57,14 @@
   type FeedbackState = {
     tone: "success" | "error";
     message: string;
+  };
+
+  type ToastItem = {
+    id: number;
+    message: string;
+    color: "green" | "red" | "yellow" | "blue";
+    visible: boolean;
+    timeoutId?: ReturnType<typeof setTimeout>;
   };
 
   const defaultForm = (): SectionFormState => ({
@@ -139,6 +151,37 @@
   let isFetching = $state(true);
   let hasBooted = $state(false);
 
+  let toasts = $state<ToastItem[]>([]);
+  let nextToastId = $state(1);
+
+  function addToast(message: string, color: ToastItem["color"] = "green") {
+    const id = nextToastId++;
+    const newToast: ToastItem = {
+      id,
+      message,
+      color,
+      visible: true,
+    };
+
+    const timeoutId = setTimeout(() => {
+      dismissToast(id);
+    }, 5000);
+    newToast.timeoutId = timeoutId;
+
+    toasts = [...toasts, newToast];
+  }
+
+  function dismissToast(id: number) {
+    const toast = toasts.find((t) => t.id === id);
+    if (toast?.timeoutId) {
+      clearTimeout(toast.timeoutId);
+    }
+    toasts = toasts.map((t) => (t.id === id ? { ...t, visible: false } : t));
+    setTimeout(() => {
+      toasts = toasts.filter((t) => t.id !== id);
+    }, 300);
+  }
+
   let activeCourseOptions = $derived(courses);
   let instructorOptions = $derived(
     instructors.filter((user) => user.role === "instructor"),
@@ -181,12 +224,12 @@
     try {
       await approveAdminEnrollment(requestId);
       requests = requests.filter((r) => r.id !== requestId);
-      feedback = { tone: "success", message: "Enrollment approved." };
+      addToast("Enrollment approved.", "green");
       // Refresh sections to update remaining seats
       const sectionResponse = await getSections();
       sections = sectionResponse.sections ?? [];
     } catch (error) {
-      feedback = { tone: "error", message: toPublicError(error) };
+      addToast(toPublicError(error), "red");
     }
   }
 
@@ -340,6 +383,27 @@
 </svelte:head>
 
 <section class="admin-sections-page space-y-6">
+  <ToastContainer position="top-right" class="z-50">
+    {#each toasts as toast (toast.id)}
+      <Toast
+        color={toast.color}
+        dismissable={true}
+        transition={fly}
+        params={{ x: 200, duration: 300 }}
+        class="mb-4"
+        onclose={() => dismissToast(toast.id)}
+        bind:toastStatus={toast.visible}
+      >
+        {#snippet icon()}
+          {#if toast.color === "red"}
+            <CloseCircleSolid class="h-5 w-5" />
+          {/if}
+        {/snippet}
+        {toast.message}
+      </Toast>
+    {/each}
+  </ToastContainer>
+
   <Card size="xl" class="shadow-none border-slate-200 max-w-none p-4">
     <div class="flex flex-col md:flex-row justify-between gap-6">
       <div>
